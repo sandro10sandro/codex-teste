@@ -1,7 +1,8 @@
 name: Release APK
 
 # Publica o APK debug como GitHub Release (pré-lançamento). A tag é criada pelo próprio release
-# (gh release create --target), então não é preciso empurrar tag: dispare manualmente, informando a tag.
+# (gh release create --target). Para lançar: altere android/RELEASE_TAG (uma linha com a tag, ex.: v0.1.0)
+# e faça push; também dá para disparar manualmente (workflow_dispatch) quando o workflow estiver na branch padrão.
 on:
   workflow_dispatch:
     inputs:
@@ -10,8 +11,8 @@ on:
         required: true
         default: "v0.1.0"
   push:
-    tags:
-      - "v*"
+    paths:
+      - "android/RELEASE_TAG"
 
 permissions:
   contents: write
@@ -48,7 +49,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="$(tr -d '[:space:]' < RELEASE_TAG)"; fi
+          [ -n "$TAG" ] || { echo "tag vazia"; exit 1; }
           APK="app/build/outputs/apk/debug/app-debug.apk"
           NAME="CallLab-${TAG}-debug.apk"
           cp "$APK" "$NAME"
