@@ -5,10 +5,11 @@ import android.view.accessibility.AccessibilityEvent
 import com.sandro.callrec.log.TechLog
 
 /**
- * Serviço de acessibilidade mínimo e experimental: não declara tipos de evento, não lê janelas
- * (canRetrieveWindowContent=false) e não faz nada além de registrar que está ativo. Existe para
- * que a sonda meça, aparelho a aparelho, se ter um serviço de acessibilidade ativo altera a
- * elegibilidade de captura de áudio em segundo plano. O resultado é registrado no log técnico.
+ * Serviço de acessibilidade mínimo: não declara tipos de evento, não lê janelas (canRetrieveWindowContent=false)
+ * e não faz nada além de registrar que está ativo. Existe porque, pela documentação do Android ("Sharing audio
+ * input"), durante uma chamada (MODE_IN_CALL / MODE_IN_COMMUNICATION) um app comum recebe silêncio do microfone e
+ * a exceção para app não privilegiado é ser um serviço de acessibilidade. O estado desta habilitação é registrado
+ * no log e nos metadados de cada gravação, para comparar aparelho a aparelho.
  */
 class KeepAliveAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {

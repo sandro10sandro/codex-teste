@@ -56,5 +56,6 @@ class RecordingStore(val root: File) {
         File(audio.parentFile, "${audio.nameWithoutExtension}.json").delete()
     }
 
-    fun hasImportKey(key: String): Boolean = list().any { it.importKey == key }
+    /** Chaves de importação já existentes (calculadas uma vez por lote, não uma vez por item). */
+    fun importKeys(): Set<String> = list().mapNotNull { it.importKey }.toSet()
 }

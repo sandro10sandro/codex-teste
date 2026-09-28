@@ -33,7 +33,7 @@ class LimitVerdictTest {
     @Test
     fun idleSilenceOnPrivilegedIsNotTreatedAsConclusive() {
         val text = LimitVerdict.explain(listOf(r(AudioSources.VOICE_CALL, ProbeStatus.OK_SILENT)), false).joinToString("\n")
-        assertTrue(text, "DURANTE uma chamada" in text)
+        assertTrue(text, "nada se conclui" in text)
         assertFalse(text, "LIMITE COMPROVADO" in text)
     }
 
@@ -51,5 +51,7 @@ class LimitVerdictTest {
             listOf(r(AudioSources.MIC, ProbeStatus.SILENCED_BY_POLICY, Phase.VOIP)), false,
         ).joinToString("\n")
         assertTrue(text, "isClientSilenced=true" in text)
+        assertTrue(text, "acessibilidade" in text)
+        assertTrue(text, "Trocar de fonte não resolve" in text)
     }
 }

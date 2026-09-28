@@ -1,5 +1,6 @@
 package com.sandro.callrec.storage
 
+import com.sandro.callrec.probe.AudioMath
 import com.sandro.callrec.probe.AudioSources
 import com.sandro.callrec.probe.ProbeResult
 import org.json.JSONArray
@@ -25,8 +26,11 @@ data class SegmentInfo(
     val peak: Int,
     val silencedByPolicy: Boolean?,
     val reason: String,
+    /** Soma das janelas de ~100 ms com sinal real (pico acima do silêncio digital). */
+    val signalMs: Long = 0,
 ) {
     val sourceName: String get() = AudioSources.name(sourceId)
+    val qualifies: Boolean get() = AudioMath.qualifiesAsSignal(signalMs, silencedByPolicy)
 
     fun toJson() = JSONObject().apply {
         put("source", sourceId)
@@ -37,12 +41,14 @@ data class SegmentInfo(
         put("peak", peak)
         silencedByPolicy?.let { put("silencedByPolicy", it) }
         put("reason", reason)
+        put("signalMs", signalMs)
     }
 
     companion object {
         fun fromJson(o: JSONObject) = SegmentInfo(
             o.optInt("source"), o.optLong("startMs"), o.optLong("endMs"), o.optDouble("rms", 0.0), o.optInt("peak"),
             if (o.has("silencedByPolicy")) o.optBoolean("silencedByPolicy") else null, o.optString("reason"),
+            o.optLong("signalMs"),
         )
     }
 }

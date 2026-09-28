@@ -114,7 +114,7 @@ class MainActivity : Activity() {
             open(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         })
         col.addView(button("Ignorar otimização de bateria") { requestBatteryExemption() })
-        col.addView(button("Acessibilidade (experimental)") { open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
+        col.addView(button("Acessibilidade (necessária para gravar em chamada)") { open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) })
 
         col.addView(label("2. Diagnóstico"))
         col.addView(button("Rodar sonda de capacidades (ocioso)") { runProbe() })
@@ -123,7 +123,7 @@ class MainActivity : Activity() {
             toast("Aprendizado apagado")
         })
         extraInput = EditText(this).apply {
-            hint = "IDs extras de AudioSource, ex.: 1999,2000"
+            hint = "IDs extras de AudioSource (só valores que o AudioRecord aceita), ex.: 1997,1998,1999,2000"
             inputType = InputType.TYPE_CLASS_TEXT
             setText(store.extraSources().joinToString(","))
         }
@@ -175,15 +175,17 @@ class MainActivity : Activity() {
     }
 
     private fun requestBatteryExemption() {
-        try {
-            open(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
-        } catch (_: Throwable) {
-            open(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-        }
+        val direct = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
+        if (!open(direct, quiet = true)) open(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
     }
 
-    private fun open(i: Intent) {
-        try { startActivity(i) } catch (t: Throwable) { toast("Não foi possível abrir: ${t.message}") }
+    /** Abre a tela; devolve false se nenhum app trata a intenção. [quiet] suprime o aviso para permitir fallback. */
+    private fun open(i: Intent, quiet: Boolean = false): Boolean = try {
+        startActivity(i)
+        true
+    } catch (t: Throwable) {
+        if (!quiet) toast("Não foi possível abrir: ${t.message}")
+        false
     }
 
     private fun runProbe() {
@@ -227,8 +229,26 @@ class MainActivity : Activity() {
             toast("Conceda RECORD_AUDIO e READ_PHONE_STATE primeiro")
             return
         }
-        CallRecorderService.startForeground(this, CallRecorderService.ACTION_START_MONITOR)
+        if (!Permissions.isAccessibilityEnabled(this)) {
+            AlertDialog.Builder(this)
+                .setTitle("Acessibilidade desativada")
+                .setMessage(
+                    "Pela documentação do Android, durante uma chamada um app comum recebe SILÊNCIO do " +
+                        "microfone; a exceção para app não privilegiado é ser um serviço de acessibilidade ativo. " +
+                        "Sem ele, as gravações de chamada tendem a sair vazias (o app registra isso no log).\n\n" +
+                        "Ative \"CallLab\" em Acessibilidade. No Android 13+, apps instalados fora da loja podem " +
+                        "exigir liberar \"Configurações restritas\" em Informações do app.",
+                )
+                .setPositiveButton("Abrir acessibilidade") { _, _ -> open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+                .setNegativeButton("Iniciar mesmo assim") { _, _ -> launchMonitor() }
+                .show()
+            return
+        }
+        launchMonitor()
     }
+
+    private fun launchMonitor() =
+        CallRecorderService.startForeground(this, CallRecorderService.ACTION_START_MONITOR)
 
     private fun manualTest() {
         if (!Permissions.has(this, android.Manifest.permission.RECORD_AUDIO)) {
@@ -255,7 +275,8 @@ class MainActivity : Activity() {
                     .setPositiveButton("Importar todas") { _, _ ->
                         Thread({
                             val rs = RecordingStore(this)
-                            val n = found.count { OemRecordingImporter.importOne(this, rs, it) != null }
+                            val keys = rs.importKeys().toMutableSet()
+                            val n = found.count { OemRecordingImporter.importOne(this, rs, it, keys) != null }
                             runOnUiThread { outputView.text = "$n importada(s); ${found.size - n} já existiam ou falharam." }
                         }, "Import").start()
                     }

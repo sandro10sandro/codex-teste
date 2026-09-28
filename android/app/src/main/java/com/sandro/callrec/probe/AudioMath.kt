@@ -34,5 +34,15 @@ object AudioMath {
     /** Pico até este valor é tratado como silêncio digital (fonte bloqueada/zerada). */
     const val SILENCE_PEAK = 2
 
+    /** Tempo mínimo de janelas com sinal para um segmento contar como "deu sinal". */
+    const val MIN_SIGNAL_MS = 800L
+
     fun isSilent(peak: Int) = peak <= SILENCE_PEAK
+
+    /**
+     * Critério ÚNICO de sucesso de um segmento (aprendizado, escolha do vencedor e relatório usam este):
+     * sinal sustentado e não silenciado pela política de áudio no último sondeio.
+     */
+    fun qualifiesAsSignal(signalMs: Long, silencedAtEnd: Boolean?): Boolean =
+        signalMs >= MIN_SIGNAL_MS && silencedAtEnd != true
 }

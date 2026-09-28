@@ -34,7 +34,8 @@ object LimitVerdict {
             }
             if (silent.isNotEmpty()) {
                 val hint = if (phase == Phase.IDLE) {
-                    " Em ociosidade (sem chamada ativa) silêncio é esperado: repita a sonda DURANTE uma chamada."
+                    " Em ociosidade (sem chamada ativa) silêncio é esperado e nada se conclui: a evidência em " +
+                        "chamada está nas tentativas/segmentos de cada gravação real (a sonda da tela só roda ociosa)."
                 } else {
                     " Durante a chamada isso indica áudio zerado pela política de áudio."
                 }
@@ -53,9 +54,11 @@ object LimitVerdict {
 
         val policy = results.filter { it.status == ProbeStatus.SILENCED_BY_POLICY && !AudioSources.isPrivileged(it.sourceId) }
         if (policy.isNotEmpty()) {
-            out += "Captura simultânea bloqueada pela política de áudio (isClientSilenced=true) em: " +
+            out += "Captura bloqueada pela política de áudio (isClientSilenced=true) em: " +
                 policy.joinToString { it.name } +
-                ". Outro app (chamada/VoIP) detém o microfone com prioridade."
+                ". Durante chamada (MODE_IN_CALL/MODE_IN_COMMUNICATION) um app comum recebe silêncio; a " +
+                "exceção documentada para app não privilegiado é ser um serviço de acessibilidade ativo. " +
+                "Trocar de fonte não resolve: a política vale para o app, não para a fonte."
         }
 
         if (micOk.isEmpty() && mic.isNotEmpty()) {

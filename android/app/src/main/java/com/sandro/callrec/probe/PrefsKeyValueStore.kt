@@ -9,5 +9,11 @@ class PrefsKeyValueStore(context: Context) : KeyValueStore {
     override fun put(key: String, value: String) { prefs.edit().putString(key, value).apply() }
 
     /** Apaga tudo o que foi aprendido neste aparelho (para refazer os testes do zero). */
-    fun clear() { prefs.edit().clear().apply() }
+    fun clear() {
+        // Os IDs extras são configuração do usuário, não aprendizado: preservados.
+        val extras = prefs.getString("extra_sources", null)
+        val e = prefs.edit().clear()
+        if (extras != null) e.putString("extra_sources", extras)
+        e.apply()
+    }
 }

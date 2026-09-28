@@ -25,13 +25,13 @@ class VoipNotificationListener : NotificationListenerService() {
             "pkg" to sbn.packageName, "title" to title, "ongoing" to isOngoing(sbn),
             "category" to sbn.notification.category, "key" to sbn.key,
         )
-        CallEventBus.post(VoipNotification(sbn.packageName, title, sbn.key, posted = true))
+        CallEventBus.post(VoipNotification(sbn.packageName, title, sbn.key, posted = true, postTime = sbn.postTime))
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         if (!isWatchedCall(sbn)) return
         TechLog.event("voip", "notificação de chamada removida", "pkg" to sbn.packageName, "key" to sbn.key)
-        CallEventBus.post(VoipNotification(sbn.packageName, null, sbn.key, posted = false))
+        CallEventBus.post(VoipNotification(sbn.packageName, null, sbn.key, posted = false, postTime = sbn.postTime))
     }
 
     private fun isOngoing(sbn: StatusBarNotification) =
@@ -39,8 +39,8 @@ class VoipNotificationListener : NotificationListenerService() {
 
     private fun isWatchedCall(sbn: StatusBarNotification): Boolean {
         if (sbn.packageName !in WATCHED_PACKAGES) return false
-        val n = sbn.notification
-        return n.category == Notification.CATEGORY_CALL || isOngoing(sbn)
+        // Só CATEGORY_CALL: outras notificações persistentes do WhatsApp (backup, Web) não são chamada.
+        return sbn.notification.category == Notification.CATEGORY_CALL
     }
 
     companion object {

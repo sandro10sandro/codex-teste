@@ -89,8 +89,9 @@
         </service>
 
         <!--
-            Experimental: serviço de acessibilidade mínimo (sem eventos, sem leitura de janela).
-            A sonda registra se habilitá-lo muda o resultado da captura em cada aparelho.
+            Serviço de acessibilidade mínimo (sem eventos, sem leitura de janela). Necessário para gravar durante
+            chamada: pela doc do Android, um app comum recebe silêncio do microfone em chamada, salvo serviço de
+            acessibilidade.
         -->
         <service
             android:name=".record.KeepAliveAccessibilityService"

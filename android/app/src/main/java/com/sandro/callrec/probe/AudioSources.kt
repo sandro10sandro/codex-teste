@@ -48,6 +48,7 @@ object AudioSources {
         REMOTE_SUBMIX -> "REMOTE_SUBMIX"
         UNPROCESSED -> "UNPROCESSED"
         VOICE_PERFORMANCE -> "VOICE_PERFORMANCE"
+        -1 -> "N/D"
         else -> "CUSTOM_$id"
     }
 }

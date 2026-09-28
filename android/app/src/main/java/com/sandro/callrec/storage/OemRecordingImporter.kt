@@ -20,6 +20,12 @@ data class NativeRecording(
 }
 
 object OemPaths {
+    /** Em API < 29 a coluna DATA é o caminho completo; extrai só a pasta para ter o mesmo sentido de RELATIVE_PATH. */
+    fun folderOf(dataPath: String): String {
+        val i = dataPath.lastIndexOf('/')
+        return if (i >= 0) dataPath.substring(0, i + 1) else dataPath
+    }
+
     /**
      * Heurística por caminho: discadores de fabricantes gravam em pastas como "Recordings/Call",
      * "MIUI/sound_recorder/call_rec", "Call recordings", "Gravações de chamadas". Não depende de
@@ -54,7 +60,8 @@ object OemRecordingImporter {
                 null, null, "${MediaStore.Audio.Media.DATE_ADDED} DESC",
             )?.use { c ->
                 while (c.moveToNext()) {
-                    val path = c.getString(2) ?: continue
+                    val raw = c.getString(2) ?: continue
+                    val path = if (Build.VERSION.SDK_INT >= 29) raw else OemPaths.folderOf(raw)
                     if (!OemPaths.looksLikeCallRecording(path)) continue
                     val id = c.getLong(0)
                     out += NativeRecording(
@@ -74,31 +81,46 @@ object OemRecordingImporter {
         return out
     }
 
-    /** Copia para a biblioteca do app. Devolve null se já importada ou em caso de erro. */
-    fun importOne(context: Context, store: RecordingStore, item: NativeRecording): RecordingMeta? {
-        if (store.hasImportKey(item.key)) return null
+    /**
+     * Copia para a biblioteca do app. Devolve null se já importada ou em caso de erro. [knownKeys] é o
+     * conjunto de chaves já importadas (mutável: recebe a nova chave), calculado uma vez por lote.
+     */
+    fun importOne(context: Context, store: RecordingStore, item: NativeRecording, knownKeys: MutableSet<String>): RecordingMeta? {
+        if (item.key in knownKeys) return null
+        var partial: File? = null
         return try {
             val ext = item.name.substringAfterLast('.', "m4a").lowercase().take(5)
             val files = store.newFiles(CallKind.OEM_IMPORT, item.dateMs, ext)
+            partial = files.audio
             context.contentResolver.openInputStream(item.uri)?.use { input ->
                 files.audio.outputStream().use { input.copyTo(it) }
-            } ?: return null
+            } ?: run {
+                files.audio.delete()
+                return null
+            }
             val profile = DeviceProfile.current(context)
             val meta = RecordingMeta(
                 id = files.id, kind = CallKind.OEM_IMPORT, startedAt = item.dateMs,
                 endedAt = item.dateMs + item.durationMs, durationMs = item.durationMs,
-                number = null, contactName = null, app = null, finalSourceId = -1, sampleRate = 0,
+                number = null, contactName = null, app = null, finalSourceId = -1, sampleRate = 0, // desconhecidos
                 segments = emptyList(), attempts = emptyList(), deviceKey = profile.key, phase = "oem_import",
                 audioModeAtStart = 0, speakerphoneAtStart = false,
-                notes = "Importada do gravador nativo do fabricante. Origem: ${item.path}${item.name}",
+                notes = "Importada do gravador nativo do fabricante. Origem: ${item.path}${item.name}. " +
+                    "O horário é a data de inclusão no MediaStore (pode diferir do início da chamada); " +
+                    "número e contato não estão disponíveis nesse arquivo.",
                 audioPath = files.audio.absolutePath, importKey = item.key,
             )
             store.save(meta)
+            knownKeys += item.key
+            partial = null
             TechLog.event("oem", "gravação nativa importada", "name" to item.name, "path" to item.path)
             meta
         } catch (t: Throwable) {
             TechLog.error("oem", "falha ao importar ${item.name}", t)
             null
+        } finally {
+            // Cópia interrompida não deixa arquivo parcial órfão na biblioteca.
+            partial?.delete()
         }
     }
 }

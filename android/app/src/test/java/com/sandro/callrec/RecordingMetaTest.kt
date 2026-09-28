@@ -25,8 +25,8 @@ class RecordingMetaTest {
         number = number, contactName = name, app = app,
         finalSourceId = AudioSources.MIC, sampleRate = 16000,
         segments = listOf(
-            SegmentInfo(AudioSources.UNPROCESSED, 0, 3000, 0.0, 0, true, "silêncio"),
-            SegmentInfo(AudioSources.MIC, 3000, 65_000, 412.5, 9000, null, "fim da chamada"),
+            SegmentInfo(AudioSources.UNPROCESSED, 0, 3000, 0.0, 0, true, "silêncio", 0),
+            SegmentInfo(AudioSources.MIC, 3000, 65_000, 412.5, 9000, null, "fim da chamada", 41_000),
         ),
         attempts = listOf(
             ProbeResult(AudioSources.VOICE_CALL, ProbeStatus.INIT_FAILED, 0, 0, 0.0, 0, null, "SecurityException", 3, 2, Phase.CELLULAR),
@@ -39,7 +39,8 @@ class RecordingMetaTest {
     fun jsonRoundTripPreservesEverything() {
         val m = sample()
         val back = RecordingMeta.fromJson(JSONObject(m.toJson().toString()))
-        assertEquals(m.copy(segments = back.segments, attempts = back.attempts).id, back.id)
+        assertEquals(m, back) // igualdade completa, inclusive listas de segmentos e tentativas
+        assertEquals(41_000L, back.segments[1].signalMs)
         assertEquals(CallKind.CELLULAR_IN, back.kind)
         assertEquals("+5511999990000", back.number)
         assertEquals("Maria", back.contactName)

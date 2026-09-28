@@ -69,7 +69,10 @@ object TechLog {
     fun readTail(maxChars: Int = 180_000): String {
         val f = file ?: return ""
         return try {
-            val s = f.readText()
+            var s = f.readText()
+            val old = File(f.parentFile, "techlog.1.jsonl")
+            // Depois de uma rotação o arquivo atual é curto: completa com o final do anterior.
+            if (s.length < maxChars && old.exists()) s = old.readText().takeLast(maxChars - s.length) + s
             if (s.length > maxChars) s.substring(s.length - maxChars) else s
         } catch (_: Throwable) {
             ""

@@ -30,8 +30,11 @@ class CallMonitor(private val context: Context, private val onState: (state: Int
                 override fun onCallStateChanged(state: Int, phoneNumber: String?) = dispatch(state)
             }
             // PhoneStateListener precisa ser registrado em thread com Looper.
-            Handler(Looper.getMainLooper()).post { tm.listen(l, PhoneStateListener.LISTEN_CALL_STATE) }
             callback = l
+            Handler(Looper.getMainLooper()).post {
+                // stop() pode ter rodado antes deste post: só registra se ainda for o listener atual.
+                if (callback === l) tm.listen(l, PhoneStateListener.LISTEN_CALL_STATE)
+            }
         }
         TechLog.event("telephony", "monitor de chamada iniciado", "api" to Build.VERSION.SDK_INT)
     }

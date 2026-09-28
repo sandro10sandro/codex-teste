@@ -38,10 +38,22 @@ class StrategyRankerTest {
     }
 
     @Test
-    fun repeatedlyFailingSourceIsDropped() {
+    fun repeatedlyFailingSourceGoesToTheEndButStaysReachable() {
         val stats = mapOf(AudioSources.UNPROCESSED to SourceStat(failures = 3))
         val r = StrategyRanker.rankMicClass(34, true, stats, null)
-        assertFalse(AudioSources.UNPROCESSED in r)
+        assertEquals(AudioSources.UNPROCESSED, r.last())
+        assertTrue(AudioSources.UNPROCESSED in r)
+    }
+
+    @Test
+    fun longHistoryCannotFreezeTheRanking() {
+        // MIC acumulou 100 sucessos e agora só dá silêncio; CAMCORDER é o vencedor recente.
+        val stats = mapOf(
+            AudioSources.MIC to SourceStat(successes = 100, silentRuns = 5),
+            AudioSources.CAMCORDER to SourceStat(successes = 1),
+        )
+        val r = StrategyRanker.rankMicClass(34, true, stats, AudioSources.CAMCORDER)
+        assertTrue(r.indexOf(AudioSources.CAMCORDER) < r.indexOf(AudioSources.MIC))
     }
 
     @Test

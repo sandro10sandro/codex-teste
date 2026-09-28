@@ -17,6 +17,8 @@ data class SourceStat(val successes: Int = 0, val silentRuns: Int = 0, val failu
  * eco justamente sobre o áudio remoto.
  */
 object StrategyRanker {
+    private const val CREDIT_CAP = 5
+
 
     fun shouldSweepPrivileged(capturePermissionGranted: Boolean, stats: Map<Int, SourceStat>): Boolean {
         if (capturePermissionGranted) return true
@@ -47,15 +49,17 @@ object StrategyRanker {
 
         fun score(id: Int): Double {
             val s = stats[id] ?: SourceStat()
-            return s.successes * 3.0 - s.silentRuns * 2.0 - s.failures * 1.5 +
-                (if (id == winner) 5.0 else 0.0) + prior(id)
+            // Crédito limitado: histórico longo não pode congelar o ranking quando o aparelho muda.
+            return minOf(s.successes, CREDIT_CAP) * 3.0 - minOf(s.silentRuns, CREDIT_CAP) * 2.0 -
+                minOf(s.failures, CREDIT_CAP) * 1.5 + (if (id == winner) 5.0 else 0.0) + prior(id)
         }
 
-        val usable = candidates.filterNot {
+        // Fonte que só falhou vai para o FIM da lista em vez de sumir: continua acessível na volta
+        // completa da cascata, então uma falha transitória antiga não a exclui para sempre.
+        val (bad, good) = candidates.partition {
             val s = stats[it] ?: SourceStat()
             s.failures >= 3 && s.successes == 0
         }
-        val pool = usable.ifEmpty { candidates }
-        return pool.sortedByDescending { score(it) }
+        return good.sortedByDescending { score(it) } + bad.sortedByDescending { score(it) }
     }
 }

@@ -4,7 +4,13 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** Evento de chamada por aplicativo (VoIP) observado pelo NotificationListener. */
-data class VoipNotification(val packageName: String, val title: String?, val key: String, val posted: Boolean)
+data class VoipNotification(
+    val packageName: String,
+    val title: String?,
+    val key: String,
+    val posted: Boolean,
+    val postTime: Long = 0,
+)
 
 /** Barramento em processo entre o NotificationListenerService e o serviço de gravação. */
 object CallEventBus {
@@ -25,8 +31,8 @@ object CallEventBus {
         listeners.forEach { it.onVoipNotification(n) }
     }
 
-    /** Melhor palpite do app/contato da chamada VoIP em curso (última notificação ativa). */
-    fun currentVoip(): VoipNotification? = active.values.firstOrNull()
+    /** Notificação de chamada ativa postada mais recentemente (por horário de postagem). */
+    fun currentVoip(): VoipNotification? = active.values.maxByOrNull { it.postTime }
 
     fun clear() = active.clear()
 }

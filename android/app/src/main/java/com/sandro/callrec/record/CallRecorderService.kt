@@ -16,7 +16,6 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
-import android.provider.CallLog
 import android.telephony.TelephonyManager
 import com.sandro.callrec.device.DeviceProfile
 import com.sandro.callrec.log.TechLog
@@ -34,15 +33,21 @@ import com.sandro.callrec.storage.CallKind
 import com.sandro.callrec.storage.RecordingMeta
 import com.sandro.callrec.storage.RecordingStore
 import com.sandro.callrec.telephony.CallEventBus
+import com.sandro.callrec.telephony.CallLogEntry
+import com.sandro.callrec.telephony.CallLogMatcher
 import com.sandro.callrec.telephony.CallLogResolver
 import com.sandro.callrec.telephony.CallMonitor
 import com.sandro.callrec.ui.MainActivity
+import java.io.File
 
 /**
  * Serviço em primeiro plano (tipo microfone): detecta chamadas celulares (TelephonyCallback) e por
- * aplicativo (modo de áudio MODE_IN_COMMUNICATION + notificações), e grava com o CascadeRecorder.
+ * aplicativo (modo de áudio MODE_IN_COMMUNICATION + notificações) e grava com o CascadeRecorder.
  * Precisa ser iniciado pelo usuário com o app visível (restrição do Android 12+/14 para serviços de
  * microfone). Reiniciar após reboot exige abrir o app de novo.
+ *
+ * Chamada celular tem prioridade: se atender uma ligação durante uma sessão VoIP ou de teste manual,
+ * essa sessão é encerrada e a chamada celular passa a ser gravada.
  */
 class CallRecorderService : Service(), CascadeRecorder.Listener {
 
@@ -53,15 +58,19 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
         val kind: CallKind,
         val phase: String,
         val ctx: CallContext,
+        /** Chave do aprendizado: aparelho, e para VoIP também o aplicativo (políticas diferem por app). */
+        val learnKey: String,
         val startedAt: Long,
         val files: RecordingStore.NewFiles,
         val recorder: CascadeRecorder,
         val profile: DeviceProfile,
         val audioMode: Int,
         val speaker: Boolean,
-        val voipPackage: String?,
-        val voipTitle: String?,
-    )
+        val accessibilityOn: Boolean,
+    ) {
+        @Volatile var voipPackage: String? = null
+        @Volatile var voipTitle: String? = null
+    }
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var am: AudioManager
@@ -81,6 +90,17 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
         override fun run() {
             pollVoip()
             handler.postDelayed(this, POLL_MS)
+        }
+    }
+
+    /** Mantém app/contato da chamada VoIP atualizados enquanto ela acontece (a notificação some no fim). */
+    private val busListener = CallEventBus.Listener { n ->
+        handler.post {
+            val a = active ?: return@post
+            if (a.origin == Origin.VOIP && n.posted) {
+                a.voipPackage = n.packageName
+                if (n.title != null) a.voipTitle = n.title
+            }
         }
     }
 
@@ -127,15 +147,21 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
             stopSelf()
             return false
         }
+        var status = "monitorando"
         try {
             callMonitor = CallMonitor(this) { s -> handler.post { onCellularState(s) } }.also { it.start() }
         } catch (t: Throwable) {
-            TechLog.error("svc", "monitor de chamada indisponível (READ_PHONE_STATE?)", t)
+            TechLog.error("svc", "monitor de chamada celular indisponível (READ_PHONE_STATE?)", t)
+            status = "monitorando (sem detecção de chamada celular)"
         }
+        CallEventBus.register(busListener)
         handler.postDelayed(voipPoll, POLL_MS)
         ServiceState.monitoring = true
-        ServiceState.status = "monitorando"
-        TechLog.event("svc", "monitoramento iniciado", "device" to DeviceProfile.current(this).key)
+        ServiceState.status = status
+        TechLog.event(
+            "svc", "monitoramento iniciado",
+            "device" to DeviceProfile.current(this).key, "accessibilityEnabled" to Permissions.isAccessibilityEnabled(this),
+        )
         return true
     }
 
@@ -147,15 +173,17 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
     private fun teardown() {
         handler.removeCallbacks(voipPoll)
         handler.removeCallbacks(manualStop)
+        // Marca antes de encerrar: nenhuma sessão nova pode começar durante o desmonte.
+        ServiceState.monitoring = false
         endSession()
         callMonitor?.stop()
         callMonitor = null
+        CallEventBus.unregister(busListener)
         CallEventBus.clear()
         if (inForeground) {
             try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Throwable) {}
             inForeground = false
         }
-        ServiceState.monitoring = false
         ServiceState.recording = false
         ServiceState.status = "parado"
         ServiceState.currentSource = ""
@@ -166,13 +194,9 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
         when (state) {
             TelephonyManager.CALL_STATE_RINGING -> wasRinging = true
             TelephonyManager.CALL_STATE_OFFHOOK -> {
-                if (active == null) {
-                    beginSession(
-                        Origin.CELLULAR,
-                        if (wasRinging) CallKind.CELLULAR_IN else CallKind.CELLULAR_OUT,
-                        Phase.CELLULAR,
-                    )
-                }
+                // Chamada celular tem prioridade sobre sessão VoIP/manual em andamento.
+                if (active != null && active?.origin != Origin.CELLULAR) endSession()
+                startCellularIfIdle()
             }
             TelephonyManager.CALL_STATE_IDLE -> {
                 wasRinging = false
@@ -181,10 +205,21 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
         }
     }
 
+    private fun startCellularIfIdle() {
+        if (active == null && cellularState == TelephonyManager.CALL_STATE_OFFHOOK) {
+            beginSession(Origin.CELLULAR, if (wasRinging) CallKind.CELLULAR_IN else CallKind.CELLULAR_OUT, Phase.CELLULAR)
+        }
+    }
+
     private fun pollVoip() {
         val inComm = am.mode == AudioManager.MODE_IN_COMMUNICATION
         val a = active
         if (a == null) {
+            // Recuperação: chamada celular em curso sem sessão (ex.: sessão anterior acabou de terminar).
+            if (cellularState == TelephonyManager.CALL_STATE_OFFHOOK) {
+                startCellularIfIdle()
+                return
+            }
             if (cellularState != TelephonyManager.CALL_STATE_IDLE) return
             if (inComm) {
                 if (++voipHits >= 2) {
@@ -209,29 +244,31 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
     // ---------------------------------------------------------------- sessão de gravação
 
     private fun beginSession(origin: Origin, kind: CallKind, phase: String) {
-        if (active != null) return
+        if (active != null || !ServiceState.monitoring) return
         if (!Permissions.has(this, Manifest.permission.RECORD_AUDIO)) {
             TechLog.event("svc", "sem RECORD_AUDIO; gravação não iniciada")
             return
         }
         val profile = DeviceProfile.current(this)
         val ctx = Learning.contextFor(phase)
-        val stats = probeStore.stats(profile.key, ctx)
+        val voip = if (origin == Origin.VOIP) CallEventBus.currentVoip() else null
+        val learnKey = if (origin == Origin.VOIP) "${profile.key}#${voip?.packageName ?: "voip-desconhecido"}" else profile.key
+        val stats = probeStore.stats(learnKey, ctx)
         val sweep = StrategyRanker.shouldSweepPrivileged(
             Permissions.has(this, "android.permission.CAPTURE_AUDIO_OUTPUT"), stats,
         )
         val ranked = StrategyRanker.rankMicClass(
             Build.VERSION.SDK_INT, CapabilityProbe.unprocessedSupported(this), stats,
-            probeStore.winner(profile.key, ctx), probeStore.extraSources(),
+            probeStore.winner(learnKey, ctx), probeStore.extraSources(),
         )
+        val a11y = Permissions.isAccessibilityEnabled(this)
         val startedAt = System.currentTimeMillis()
         val files = recStore.newFiles(kind, startedAt)
         val recorder = CascadeRecorder(this, files.audio, sweep, ranked, phase, this)
-        val voip = if (origin == Origin.VOIP) CallEventBus.currentVoip() else null
-        active = Active(
-            origin, kind, phase, ctx, startedAt, files, recorder, profile, am.mode, am.isSpeakerphoneOn,
-            voip?.packageName, voip?.title,
-        )
+        val a = Active(origin, kind, phase, ctx, learnKey, startedAt, files, recorder, profile, am.mode, am.isSpeakerphoneOn, a11y)
+        a.voipPackage = voip?.packageName
+        a.voipTitle = voip?.title
+        active = a
         acquireWakeLock()
         ServiceState.recording = true
         ServiceState.status = "gravando (${kind.label})"
@@ -240,7 +277,13 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
             "origin" to origin.name, "kind" to kind.name, "sweepPrivileged" to sweep,
             "candidates" to ranked.joinToString { AudioSources.name(it) },
             "audioMode" to am.mode, "speaker" to am.isSpeakerphoneOn, "voipPkg" to voip?.packageName,
+            "accessibilityEnabled" to a11y, "sdk" to Build.VERSION.SDK_INT, "learnKey" to learnKey,
         )
+        if (!a11y && origin != Origin.MANUAL) {
+            TechLog.event(
+                "svc", "acessibilidade desativada durante chamada: espere silêncio por política em fontes de microfone",
+            )
+        }
         updateNotification("Gravando (${kind.label})")
         recorder.start()
     }
@@ -270,21 +313,33 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
                 return
             }
             val recordAudio = Permissions.has(this, Manifest.permission.RECORD_AUDIO)
-            report.attempts.forEach { Learning.apply(probeStore, a.profile.key, it, recordAudio) }
-            if (report.hadSignal && report.finalSourceId >= 0) {
-                probeStore.setWinner(a.profile.key, a.ctx, report.finalSourceId)
-            }
+            Learning.applySession(probeStore, a.learnKey, report.attempts, recordAudio)
+            val best = report.bestSourceId
+            if (best >= 0) probeStore.setWinner(a.learnKey, a.ctx, best)
             if (!report.audioCreated) {
                 TechLog.event("svc", "nenhum áudio capturado; sem arquivo", "attempts" to report.attempts.size)
                 return
             }
+            val finalSource = if (best >= 0) best else report.finalSourceId
             val notes = buildList {
-                if (!report.hadSignal) add("Nenhuma fonte entregou sinal (veja as tentativas: bloqueio ou silêncio por política).")
-                if (a.origin == Origin.CELLULAR && report.finalSourceId >= 0 &&
-                    !AudioSources.isPrivileged(report.finalSourceId)
-                ) {
+                if (!report.hadSignal) {
+                    add("Nenhuma fonte entregou sinal sustentado (veja tentativas e segmentos).")
+                    if (!a.accessibilityOn && a.origin != Origin.MANUAL) {
+                        add(
+                            "Serviço de acessibilidade estava desativado: pela documentação do Android, um app " +
+                                "comum recebe silêncio durante chamada.",
+                        )
+                    }
+                }
+                if (finalSource in setOf(AudioSources.VOICE_UPLINK, AudioSources.VOICE_DOWNLINK, AudioSources.REMOTE_SUBMIX)) {
+                    add("${AudioSources.name(finalSource)} não garante as duas pontas (unidirecional ou saída do sistema).")
+                }
+                if (a.origin == Origin.CELLULAR && finalSource >= 0 && !AudioSources.isPrivileged(finalSource)) {
                     add("Captura pelo microfone: o lado remoto só é captado acusticamente (viva-voz).")
                 }
+                if (report.ioFailure) add("Falha de gravação em disco: a gravação foi interrompida.")
+                if (report.droppedRecords > 0) add("${report.droppedRecords} registros de tentativas/segmentos omitidos (limite).")
+                add("Acessibilidade ativa: ${if (a.accessibilityOn) "sim" else "não"}; API ${Build.VERSION.SDK_INT}.")
             }.joinToString(" ")
             val meta = RecordingMeta(
                 id = a.files.id,
@@ -295,7 +350,7 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
                 number = null,
                 contactName = a.voipTitle ?: titleNow,
                 app = a.voipPackage ?: pkgNow,
-                finalSourceId = report.finalSourceId,
+                finalSourceId = finalSource,
                 sampleRate = report.sampleRate,
                 segments = report.segments,
                 attempts = report.attempts,
@@ -307,7 +362,7 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
                 audioPath = a.files.audio.absolutePath,
             )
             recStore.save(meta)
-            TechLog.event("svc", "gravação salva", "file" to meta.audioPath, "durationMs" to meta.durationMs)
+            TechLog.event("svc", "gravação salva", "file" to meta.audioPath, "audioMs" to meta.durationMs)
             if (a.origin == Origin.CELLULAR) scheduleCallLogEnrichment(meta, 3)
         } catch (t: Throwable) {
             TechLog.error("svc", "falha ao finalizar sessão", t)
@@ -317,22 +372,27 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
     private fun scheduleCallLogEnrichment(meta: RecordingMeta, attemptsLeft: Int) {
         handler.postDelayed({
             Thread({
-                val e = CallLogResolver.latestSince(this, meta.startedAt - 90_000)
-                if (e == null) {
-                    if (attemptsLeft > 1) handler.post { scheduleCallLogEnrichment(meta, attemptsLeft - 1) }
-                    return@Thread
+                try {
+                    val entries = CallLogResolver.recentSince(this, meta.startedAt - 120_000)
+                    val e = CallLogMatcher.pick(entries, meta.startedAt, meta.endedAt)
+                    if (e == null) {
+                        if (attemptsLeft > 1) handler.post { scheduleCallLogEnrichment(meta, attemptsLeft - 1) }
+                        else TechLog.event("svc", "registro de chamadas sem entrada compatível", "startedAt" to meta.startedAt)
+                        return@Thread
+                    }
+                    // O usuário pode ter excluído a gravação enquanto esperávamos.
+                    if (!File(meta.audioPath).exists()) return@Thread
+                    val kind = if (e.type == CallLogEntry.OUTGOING) CallKind.CELLULAR_OUT else CallKind.CELLULAR_IN
+                    recStore.save(
+                        meta.copy(
+                            number = e.number, contactName = e.name, kind = kind,
+                            notes = (meta.notes + " Registro de chamadas: ${CallLogResolver.typeLabel(e.type)}, ${e.durationSec}s.").trim(),
+                        ),
+                    )
+                    TechLog.event("svc", "metadados enriquecidos pelo registro de chamadas", "number" to e.number, "name" to e.name)
+                } catch (t: Throwable) {
+                    TechLog.error("svc", "falha ao enriquecer metadados", t)
                 }
-                val kind = when (e.type) {
-                    CallLog.Calls.OUTGOING_TYPE -> CallKind.CELLULAR_OUT
-                    CallLog.Calls.INCOMING_TYPE, CallLog.Calls.MISSED_TYPE, CallLog.Calls.REJECTED_TYPE -> CallKind.CELLULAR_IN
-                    else -> CallKind.CELLULAR_UNKNOWN
-                }
-                val updated = meta.copy(
-                    number = e.number, contactName = e.name, kind = kind,
-                    notes = (meta.notes + " Registro de chamadas: ${CallLogResolver.typeLabel(e.type)}, ${e.durationSec}s.").trim(),
-                )
-                recStore.save(updated)
-                TechLog.event("svc", "metadados enriquecidos pelo registro de chamadas", "number" to e.number, "name" to e.name)
             }, "CallLogEnrich").start()
         }, 2500)
     }
@@ -340,11 +400,22 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
     // CascadeRecorder.Listener (chamado da thread do gravador)
     override fun onSourceChanged(sourceId: Int, note: String) {
         val name = AudioSources.name(sourceId)
-        ServiceState.currentSource = name
-        handler.post { if (active != null) updateNotification("Gravando via $name") }
+        handler.post {
+            if (active != null) {
+                ServiceState.currentSource = name
+                updateNotification("Gravando via $name")
+            }
+        }
     }
 
     override fun onAttempt(result: ProbeResult) = Unit
+
+    /** O gravador terminou sozinho (disco cheio, nenhuma fonte abriu...): encerra a sessão em vez de ficar "gravando". */
+    override fun onFinished() {
+        handler.post {
+            if (active?.recorder?.finished == true) endSession()
+        }
+    }
 
     // ---------------------------------------------------------------- notificação / wakelock
 

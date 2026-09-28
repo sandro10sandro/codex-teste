@@ -31,7 +31,8 @@ class RecordingsActivity : Activity() {
         store = RecordingStore(this)
         list = ListView(this)
         setContentView(list)
-        list.setOnItemClickListener { _, _, pos, _ -> showDetails(items[pos]) }
+        // Com a biblioteca vazia a única linha é um aviso, sem item correspondente.
+        list.setOnItemClickListener { _, _, pos, _ -> items.getOrNull(pos)?.let { showDetails(it) } }
     }
 
     override fun onResume() {
