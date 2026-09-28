@@ -8,6 +8,9 @@ import com.sandro.callrec.device.DeviceProfile
 import com.sandro.callrec.log.TechLog
 import java.io.File
 
+/** Chamada à qual uma gravação nativa pertence (para herdar número, contato e horário reais). */
+data class CallLink(val startedAt: Long, val endedAt: Long, val number: String?, val name: String?, val kind: CallKind)
+
 data class NativeRecording(
     val uri: Uri,
     val name: String,
@@ -33,10 +36,24 @@ object OemPaths {
      */
     fun looksLikeCallRecording(path: String): Boolean {
         val p = path.lowercase()
-        val call = "call" in p || "chamada" in p || "ligac" in p
+        val call = "call" in p || "chamada" in p || "ligac" in p || "phone" in p
         val rec = "rec" in p || "grava" in p
-        return call && rec
+        // Também aceita pastas conhecidas cujo nome não combina as duas palavras.
+        val known = "sound_recorder/call" in p || "callrecord" in p || "voicerecorder/call" in p
+        return (call && rec) || known
     }
+}
+
+object OemAutoImport {
+    /**
+     * Entre as gravações nativas encontradas, as que correspondem a uma chamada que acabou: incluídas no
+     * MediaStore entre 90 s antes do início e 5 min depois do fim (o discador finaliza e indexa com atraso).
+     * Escolhe por proximidade do início. Puro e testável.
+     */
+    fun <T> pickForCall(recordings: List<T>, dateMs: (T) -> Long, startedAt: Long, endedAt: Long): List<T> =
+        recordings
+            .filter { dateMs(it) in (startedAt - 90_000)..(endedAt + 300_000) }
+            .sortedBy { kotlin.math.abs(dateMs(it) - startedAt) }
 }
 
 /**
@@ -47,7 +64,8 @@ object OemPaths {
  */
 object OemRecordingImporter {
 
-    fun scan(context: Context): List<NativeRecording> {
+    /** [sinceMs]: limita a consulta a arquivos incluídos a partir desse instante (varredura rápida pós-chamada). */
+    fun scan(context: Context, sinceMs: Long? = null): List<NativeRecording> {
         val out = mutableListOf<NativeRecording>()
         val pathCol = if (Build.VERSION.SDK_INT >= 29) MediaStore.Audio.Media.RELATIVE_PATH else @Suppress("DEPRECATION") MediaStore.Audio.Media.DATA
         try {
@@ -57,7 +75,9 @@ object OemRecordingImporter {
                     MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, pathCol,
                     MediaStore.Audio.Media.DATE_ADDED, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.SIZE,
                 ),
-                null, null, "${MediaStore.Audio.Media.DATE_ADDED} DESC",
+                if (sinceMs != null) "${MediaStore.Audio.Media.DATE_ADDED} >= ?" else null,
+                if (sinceMs != null) arrayOf((sinceMs / 1000).toString()) else null,
+                "${MediaStore.Audio.Media.DATE_ADDED} DESC",
             )?.use { c ->
                 while (c.moveToNext()) {
                     val raw = c.getString(2) ?: continue
@@ -85,12 +105,18 @@ object OemRecordingImporter {
      * Copia para a biblioteca do app. Devolve null se já importada ou em caso de erro. [knownKeys] é o
      * conjunto de chaves já importadas (mutável: recebe a nova chave), calculado uma vez por lote.
      */
-    fun importOne(context: Context, store: RecordingStore, item: NativeRecording, knownKeys: MutableSet<String>): RecordingMeta? {
+    fun importOne(
+        context: Context,
+        store: RecordingStore,
+        item: NativeRecording,
+        knownKeys: MutableSet<String>,
+        link: CallLink? = null,
+    ): RecordingMeta? {
         if (item.key in knownKeys) return null
         var partial: File? = null
         return try {
             val ext = item.name.substringAfterLast('.', "m4a").lowercase().take(5)
-            val files = store.newFiles(CallKind.OEM_IMPORT, item.dateMs, ext)
+            val files = store.newFiles(link?.kind ?: CallKind.OEM_IMPORT, link?.startedAt ?: item.dateMs, ext)
             partial = files.audio
             context.contentResolver.openInputStream(item.uri)?.use { input ->
                 files.audio.outputStream().use { input.copyTo(it) }
@@ -100,14 +126,19 @@ object OemRecordingImporter {
             }
             val profile = DeviceProfile.current(context)
             val meta = RecordingMeta(
-                id = files.id, kind = CallKind.OEM_IMPORT, startedAt = item.dateMs,
-                endedAt = item.dateMs + item.durationMs, durationMs = item.durationMs,
-                number = null, contactName = null, app = null, finalSourceId = -1, sampleRate = 0, // desconhecidos
+                id = files.id, kind = link?.kind ?: CallKind.OEM_IMPORT, startedAt = link?.startedAt ?: item.dateMs,
+                endedAt = link?.endedAt ?: (item.dateMs + item.durationMs), durationMs = item.durationMs,
+                number = link?.number, contactName = link?.name, app = null, finalSourceId = -1, sampleRate = 0, // desconhecidos
                 segments = emptyList(), attempts = emptyList(), deviceKey = profile.key, phase = "oem_import",
                 audioModeAtStart = 0, speakerphoneAtStart = false,
-                notes = "Importada do gravador nativo do fabricante. Origem: ${item.path}${item.name}. " +
-                    "O horário é a data de inclusão no MediaStore (pode diferir do início da chamada); " +
-                    "número e contato não estão disponíveis nesse arquivo.",
+                notes = if (link != null) {
+                    "Gravação nativa do discador, vinculada à chamada pelo horário e pelo registro de chamadas. " +
+                        "Provavelmente traz as duas pontas; confirme ouvindo. Origem: ${item.path}${item.name}."
+                } else {
+                    "Importada do gravador nativo do fabricante. Origem: ${item.path}${item.name}. " +
+                        "O horário é a data de inclusão no MediaStore (pode diferir do início da chamada); " +
+                        "número e contato não estão disponíveis nesse arquivo."
+                },
                 audioPath = files.audio.absolutePath, importKey = item.key,
             )
             store.save(meta)

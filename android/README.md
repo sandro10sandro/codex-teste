@@ -89,6 +89,28 @@ Os extras só valem para valores que o `AudioRecord` aceita (0–10 públicos, m
 sistema e devem ser recusadas): o `AudioRecord` valida a fonte, então isso **não alcança fontes proprietárias de
 fabricante**; para isso seria preciso outro caminho (`MediaRecorder`/parâmetros do HAL), não implementado.
 
+## Caminho das duas pontas: gravador nativo do discador
+
+O discador do sistema grava as duas pontas com privilégio de plataforma. **Um app comum não tem API para forçar
+essa gravação**, então o CallLab não a "aciona" por baixo dos panos; ele faz o que é legítimo e completa o ciclo:
+
+1. **Diagnóstico** (botão na tela): discador padrão, fabricante, pacotes presentes, pastas com gravações acessíveis
+   e quantas importações já deram certo neste aparelho.
+2. **Atalho para ligar a gravação automática** do próprio discador. Tenta abrir a tela de configuração; se o
+   fabricante não a expõe (o comum), abre o app Telefone e mostra o caminho de menu por fabricante. Você mesmo
+   liga o recurso no seu aparelho.
+3. **Importação automática após cada chamada celular**: 6 s, 25 s e 90 s depois do fim, procura o arquivo novo no
+   MediaStore (o discador indexa com atraso), casa pelo horário e pelo registro de chamadas, e o importa já com
+   número, contato e horário reais. Desligável na tela.
+
+Limites honestos: só funciona se o aparelho **tem** o recurso (varia por modelo e região; em vários aparelhos ele
+não existe ou está desligado por região) e se o arquivo cai em pasta acessível via MediaStore (a heurística
+procura pastas com "call"/"chamada" e "rec"/"grava"). Muitos discadores guardam a gravação em armazenamento
+privado do próprio app, e aí ela é invisível a apps de terceiros. Não há como saber de antemão: o diagnóstico e o
+contador de acertos dizem o que aconteceu de fato. Os componentes de tela por fabricante são melhor esforço e
+podem não abrir em versões novas; nesse caso o app cai para o discador e para as instruções. Uma gravação nativa
+não é garantia de duas pontas (alguns fabricantes gravam só o microfone): confirme ouvindo.
+
 ## Limitações conhecidas
 
 - Nada foi testado em aparelho físico; o repositório compila e roda testes JVM, e o comportamento de áudio

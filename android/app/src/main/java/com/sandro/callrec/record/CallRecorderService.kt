@@ -30,6 +30,9 @@ import com.sandro.callrec.probe.ProbeResult
 import com.sandro.callrec.probe.ProbeStore
 import com.sandro.callrec.probe.StrategyRanker
 import com.sandro.callrec.storage.CallKind
+import com.sandro.callrec.storage.CallLink
+import com.sandro.callrec.storage.OemAutoImport
+import com.sandro.callrec.storage.OemRecordingImporter
 import com.sandro.callrec.storage.RecordingMeta
 import com.sandro.callrec.storage.RecordingStore
 import com.sandro.callrec.telephony.CallEventBus
@@ -299,6 +302,9 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
             updateNotification("Monitorando chamadas")
         }
         val voipNow = if (a.origin == Origin.VOIP) CallEventBus.currentVoip() else null
+        // O discador do fabricante grava as duas pontas com privilégio de sistema; quando o arquivo cai em pasta
+        // acessível, trazemos para a biblioteca. Independe de o nosso próprio áudio ter saído.
+        if (a.origin == Origin.CELLULAR) scheduleNativeImport(a.startedAt, System.currentTimeMillis(), a.profile.key, 1)
         // O join do gravador e a gravação de metadados saem da thread principal.
         Thread({ finalizeSession(a, voipNow?.packageName, voipNow?.title) }, "FinalizeSession").start()
     }
@@ -367,6 +373,45 @@ class CallRecorderService : Service(), CascadeRecorder.Listener {
         } catch (t: Throwable) {
             TechLog.error("svc", "falha ao finalizar sessão", t)
         }
+    }
+
+    /**
+     * Procura, depois da chamada, a gravação nativa do discador (que é indexada com atraso) e a importa vinculada
+     * à chamada. Tenta 3 vezes (6 s, 25 s, 90 s). Desligável na tela ("importar automaticamente").
+     */
+    private fun scheduleNativeImport(startedAt: Long, endedAt: Long, profileKey: String, round: Int) {
+        val prefs = getSharedPreferences("calllab_ui", MODE_PRIVATE)
+        if (!prefs.getBoolean("auto_import_native", true)) return
+        val delays = longArrayOf(6_000, 25_000, 90_000)
+        if (round > delays.size) {
+            TechLog.event("oem", "nenhuma gravação nativa apareceu para esta chamada", "startedAt" to startedAt)
+            return
+        }
+        handler.postDelayed({
+            Thread({
+                try {
+                    val found = OemRecordingImporter.scan(this, sinceMs = startedAt - 120_000)
+                    val candidates = OemAutoImport.pickForCall(found, { it.dateMs }, startedAt, endedAt)
+                    if (candidates.isEmpty()) {
+                        handler.post { scheduleNativeImport(startedAt, endedAt, profileKey, round + 1) }
+                        return@Thread
+                    }
+                    val entry = CallLogMatcher.pick(CallLogResolver.recentSince(this, startedAt - 120_000), startedAt, endedAt)
+                    val kind = when (entry?.type) {
+                        CallLogEntry.OUTGOING -> CallKind.CELLULAR_OUT
+                        CallLogEntry.INCOMING -> CallKind.CELLULAR_IN
+                        else -> CallKind.CELLULAR_UNKNOWN
+                    }
+                    val link = CallLink(startedAt, endedAt, entry?.number, entry?.name, kind)
+                    val keys = recStore.importKeys().toMutableSet()
+                    val imported = candidates.count { OemRecordingImporter.importOne(this, recStore, it, keys, link) != null }
+                    if (imported > 0) probeStore.recordNativeHit(profileKey)
+                    TechLog.event("oem", "importação automática pós-chamada", "candidates" to candidates.size, "imported" to imported, "round" to round)
+                } catch (t: Throwable) {
+                    TechLog.error("oem", "falha na importação automática", t)
+                }
+            }, "NativeImport").start()
+        }, delays[round - 1])
     }
 
     private fun scheduleCallLogEnrichment(meta: RecordingMeta, attemptsLeft: Int) {

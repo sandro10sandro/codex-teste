@@ -51,6 +51,17 @@
         <package android:name="com.coloros.soundrecorder" />
         <package android:name="com.oplus.soundrecorder" />
         <package android:name="com.huawei.soundrecorder" />
+        <package android:name="com.android.contacts" />
+        <package android:name="com.miui.contacts" />
+        <package android:name="com.android.phone" />
+        <package android:name="com.oneplus.dialer" />
+        <package android:name="com.oppo.dialer" />
+        <package android:name="com.coloros.dialer" />
+        <package android:name="com.vivo.dialer" />
+        <!-- Qualquer discador (o padrão do aparelho) -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
     </queries>
 
     <application

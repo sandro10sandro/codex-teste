@@ -61,6 +61,13 @@ class ProbeStore(private val kv: KeyValueStore) {
     @Synchronized
     fun setWinner(profileKey: String, ctx: CallContext, sourceId: Int) = kv.put(winnerKey(profileKey, ctx), sourceId.toString())
 
+    /** Quantas vezes o gravador nativo do discador gerou um arquivo importável neste aparelho. */
+    @Synchronized
+    fun nativeHits(profileKey: String): Int = kv.get("native|$profileKey")?.toIntOrNull() ?: 0
+
+    @Synchronized
+    fun recordNativeHit(profileKey: String) = kv.put("native|$profileKey", (nativeHits(profileKey) + 1).toString())
+
     /** IDs extras de AudioSource informados manualmente (experimentação de fontes específicas de fabricante). */
     @Synchronized
     fun extraSources(): List<Int> {

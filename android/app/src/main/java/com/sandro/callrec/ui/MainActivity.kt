@@ -12,12 +12,15 @@ import android.provider.Settings
 import android.text.InputType
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.sandro.callrec.device.DeviceProfile
+import com.sandro.callrec.device.DialerSupport
+import com.sandro.callrec.device.OemDialer
 import com.sandro.callrec.log.TechLog
 import com.sandro.callrec.probe.CapabilityProbe
 import com.sandro.callrec.probe.Permissions
@@ -135,11 +138,21 @@ class MainActivity : Activity() {
         col.addView(button("Parar monitoramento") { CallRecorderService.stop(this) })
         col.addView(button("Gravar teste manual (10 s)") { manualTest() })
 
-        col.addView(label("4. Biblioteca"))
+        col.addView(label("4. Gravação nativa do discador (duas pontas)"))
+        col.addView(button("Diagnóstico do discador e do fabricante") { dialerDiagnosis() })
+        col.addView(button("Abrir configurações de gravação do discador") { openDialerRecording() })
+        val ui = getSharedPreferences("calllab_ui", MODE_PRIVATE)
+        col.addView(CheckBox(this).apply {
+            text = "Importar automaticamente a gravação nativa após cada chamada"
+            isChecked = ui.getBoolean("auto_import_native", true)
+            setOnCheckedChangeListener { _, on -> ui.edit().putBoolean("auto_import_native", on).apply() }
+        })
+
+        col.addView(label("5. Biblioteca"))
         col.addView(button("Gravações") { startActivity(Intent(this, RecordingsActivity::class.java)) })
         col.addView(button("Importar gravações nativas do fabricante") { scanNative() })
 
-        col.addView(label("5. Log técnico"))
+        col.addView(label("6. Log técnico"))
         col.addView(button("Ver log") { outputView.text = TechLog.readTail(60_000).ifBlank { "(log vazio)" } })
         col.addView(button("Compartilhar log") { shareLog() })
 
@@ -257,6 +270,28 @@ class MainActivity : Activity() {
         }
         CallRecorderService.startForeground(this, CallRecorderService.ACTION_MANUAL_START, 10)
         toast("Gravando 10 s. Fale e/ou toque áudio no alto-falante.")
+    }
+
+    private fun dialerDiagnosis() {
+        outputView.text = "Analisando o discador…"
+        Thread({
+            val hits = store.nativeHits(DeviceProfile.current(this).key)
+            val text = DialerSupport.report(this, hits)
+            runOnUiThread { outputView.text = text }
+        }, "DialerDiag").start()
+    }
+
+    private fun openDialerRecording() {
+        val oem = DeviceProfile.current(this).oem
+        val how = DialerSupport.openRecordingSettings(this)
+        outputView.text = when (how) {
+            DialerSupport.Opened.SETTINGS_SCREEN -> "Abri a tela de configuração do discador.\n\n" + OemDialer.instructions(oem)
+            DialerSupport.Opened.DIALER_APP ->
+                "Abri o app Telefone (este fabricante não expõe a tela de gravação diretamente). Faça o caminho:\n\n" + OemDialer.instructions(oem)
+            DialerSupport.Opened.DIAL_GENERIC ->
+                "Abri o discador. Faça o caminho:\n\n" + OemDialer.instructions(oem)
+            DialerSupport.Opened.FAILED -> "Não consegui abrir o discador. Faça manualmente:\n\n" + OemDialer.instructions(oem)
+        }
     }
 
     private fun scanNative() {
