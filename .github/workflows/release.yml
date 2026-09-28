@@ -1,0 +1,74 @@
+name: Release APK
+
+# Publica o APK debug como GitHub Release (pré-lançamento). A tag é criada pelo próprio release
+# (gh release create --target). Para lançar: altere android/RELEASE_TAG (uma linha com a tag, ex.: v0.1.0)
+# e faça push; também dá para disparar manualmente (workflow_dispatch) quando o workflow estiver na branch padrão.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag do release (ex.: v0.1.0)"
+        required: true
+        default: "v0.1.0"
+  push:
+    paths:
+      - "android/RELEASE_TAG"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # O runner ubuntu-latest já traz o Android SDK em $ANDROID_HOME; só garantimos os pacotes.
+      - name: Install SDK packages
+        run: |
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-34" "build-tools;34.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests and debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="$(tr -d '[:space:]' < RELEASE_TAG)"; fi
+          [ -n "$TAG" ] || { echo "tag vazia"; exit 1; }
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          NAME="CallLab-${TAG}-debug.apk"
+          cp "$APK" "$NAME"
+          SHA=$(sha256sum "$NAME" | cut -d' ' -f1)
+          cat > notes.md <<NOTES
+          APK **debug** do CallLab (gravador de chamadas de laboratório), gerado pelo CI a partir do commit \`${GITHUB_SHA}\`.
+
+          - Assinado com a chave de debug: serve para aparelhos de laboratório, não para distribuição.
+          - **Ative o serviço de acessibilidade "CallLab"** após instalar: sem ele o Android entrega silêncio ao microfone durante chamadas.
+          - Ainda não validado em aparelho físico. Veja \`android/README.md\` para o roteiro de teste e os limites.
+
+          SHA-256 do APK: \`${SHA}\`
+          NOTES
+          sed -i 's/^          //' notes.md
+          gh release create "$TAG" "$NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "CallLab ${TAG} (debug)" \
+            --notes-file notes.md \
+            --prerelease
