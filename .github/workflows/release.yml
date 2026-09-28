@@ -1,7 +1,14 @@
 name: Release APK
 
-# Publica o APK debug como GitHub Release (pré-lançamento) ao empurrar uma tag v*.
+# Publica o APK debug como GitHub Release (pré-lançamento). A tag é criada pelo próprio release
+# (gh release create --target), então não é preciso empurrar tag: dispare manualmente, informando a tag.
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag do release (ex.: v0.1.0)"
+        required: true
+        default: "v0.1.0"
   push:
     tags:
       - "v*"
@@ -41,8 +48,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
           APK="app/build/outputs/apk/debug/app-debug.apk"
-          NAME="CallLab-${GITHUB_REF_NAME}-debug.apk"
+          NAME="CallLab-${TAG}-debug.apk"
           cp "$APK" "$NAME"
           SHA=$(sha256sum "$NAME" | cut -d' ' -f1)
           cat > notes.md <<NOTES
@@ -55,9 +63,9 @@ jobs:
           SHA-256 do APK: \`${SHA}\`
           NOTES
           sed -i 's/^          //' notes.md
-          gh release create "$GITHUB_REF_NAME" "$NAME" \
+          gh release create "$TAG" "$NAME" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "CallLab ${GITHUB_REF_NAME} (debug)" \
+            --target "$GITHUB_SHA" \
+            --title "CallLab ${TAG} (debug)" \
             --notes-file notes.md \
-            --prerelease \
-            --verify-tag
+            --prerelease
