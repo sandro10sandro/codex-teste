@@ -2,6 +2,7 @@ name: Android APK
 
 on:
   push:
+    branches: [main]
     paths:
       - "android/**"
       - ".github/workflows/android.yml"
@@ -25,12 +26,13 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
+      # O runner ubuntu-latest já traz o Android SDK em $ANDROID_HOME; só garantimos os pacotes.
       - name: Install SDK packages
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          echo "sdkmanager: $SDKM"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-34" "build-tools;34.0.0"
 
       - uses: gradle/actions/setup-gradle@v4
 
