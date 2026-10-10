@@ -8,14 +8,14 @@ mini índice (WIN). Ele é autossuficiente: dá para ler só este arquivo e cont
 
 ## 0. Prompt pronto para colar numa nova sessão
 
-> Continue a análise descrita em `HANDOFF.md` deste repositório. Já existe o resultado de um
-> teste da janela de abertura (9:00–9:15) do WINFUT em `scripts/abertura.py` e
-> `scripts/robustez.py`, rodado sobre `WINFUT_20MB_1.csv` (99 pregões de 2012). A regra que
-> se sustentou foi "contra o gap" com alvo/stop de 0,30%. O próximo passo mais importante é
-> **validação out-of-sample**: rodar essa mesma regra, já congelada, em dados que ainda não
-> foram olhados (2013 em diante), sem reotimizar nada. Veja a seção "O que falta analisar"
-> para a lista completa. Se houver novos CSVs no formato do Profit, rode os scripts passando
-> esses arquivos como argumento.
+> Continue a análise descrita em `HANDOFF.md` deste repositório. A regra "contra o gap" com
+> alvo/stop de 0,30%, escolhida em 99 pregões de 2012 (`scripts/abertura.py`), **já foi testada
+> fora da amostra** em 2012-09 a 2026-08 (`scripts/fora_da_amostra.py`, saída em
+> `resultados/fora_da_amostra_2012-2026.txt`) e **não tem edge**: -6,9 pts por operação com custo
+> de 10 pts e +3,1 sem custo (t = 0,83). Não reotimize nem procure outra regra nos mesmos dados.
+> O que ainda vale fazer está na seção 6: entender o novo regime de abertura do WIN (desde
+> out/nov de 2025 metade dos pregões não tem candle de 9:00) e, se for seguir, só com hipótese
+> nova fixada antes e dados posteriores a 2026-09.
 
 ---
 
@@ -29,10 +29,13 @@ A abordagem aqui foi: definir regras **antes** de ver os resultados (sem viés d
 anteriores), testar todas, reportar inclusive as que perderam, e medir se sobra algo depois de
 custos e de checagens de robustez.
 
-**Resposta curta:** dá para montar e seguir um operacional de abertura no WIN — há liquidez e a
-janela oscila o bastante para um alvo. Mas o que a imagem vende ("alvo batido 9:12 todo dia")
-os dados não mostram. Só uma regra sobreviveu às checagens, e mesmo ela bate o alvo em ~1/3 das
-vezes; é uma hipótese a validar, não um operacional provado.
+**Resposta curta:** não, não do jeito da imagem. A única regra que parecia funcionar em 2012
+(contra o gap, alvo e stop de 0,30%) foi testada em 14 anos de dados que não entraram na escolha e
+não tem edge: perde 6,9 pts por operação com custo de 10 pts e rende 3,1 pts por operação sem
+custo nenhum, o que é indistinguível de zero. As 24 combinações testadas são todas negativas fora
+da amostra. Além disso, desde outubro/novembro de 2025 o pregão do WIN em cerca de metade dos
+dias só começa às 9:02 ou 9:03 (print de leilão), então "ler 9:00-9:02 e entrar às 9:02" nem é
+executável como descrito.
 
 ---
 
@@ -53,6 +56,23 @@ preço nominal do dia). Os scripts recuperam os pontos reais pelo tamanho do tic
 de preço de cada dia equivale a 1 tick = 5 pontos. Todos os resultados em "pts" abaixo já estão
 nessa escala de pontos reais.
 
+**Arquivo 2 (fora da amostra):** `WINFUT_NA_BMF_I_v6_raw.csv`.
+
+- 154 MB, **não está no repositório** (acima do limite do GitHub). Chegou em duas partes
+  `WINFUT_NA_BMF_I_v6_raw.rar.001/.002` (RAR 5 cortado por byte: `cat *.001 *.002 > x.rar` e
+  `unrar x x.rar`). O sha256 do CSV está no cabeçalho de `resultados/fora_da_amostra_2012-2026.txt`.
+- Ticker `WIN$N` (série contínua **não ajustada**, preços em pontos reais), candles de 1 minuto,
+  **3.533 pregões, 2012-05-02 a 2026-09-02**, 1.915.016 linhas, sem after-market, sem duplicatas,
+  tick de 5 pts em todos os dias, nenhum candle inválido (verificado).
+- Defeitos conhecidos: dois buracos de 12 pregões (2016-12-14 a 2016-12-29 e 2017-06-14 a
+  2017-06-30); campo `<trades>` zerado entre 2025-04-22 e 2025-07-11 (preços e volume normais);
+  395 pregões sem candle de 9:00/9:01 (14 Quartas-feiras de Cinzas, 3 dias parciais e ~378 dias em
+  que o primeiro candle, às 9:02-9:10, é o print de um leilão de abertura prolongado; concentrados
+  em 2016, 2018, 2020, 2025 e 2026). Esses dias ficam fora do teste, que exige o candle de 9:00.
+- Rolagem: a série troca de contrato na abertura da quarta-feira mais próxima do dia 15 dos meses
+  pares (confirmado contra a série ajustada em 2012-06-13 e 2012-08-15; os gaps desses dias têm
+  mediana +1,47% contra 0,33% nos demais). `fora_da_amostra.py` deixa esses dias sem operação.
+
 ---
 
 ## 3. Metodologia e premissas
@@ -65,6 +85,8 @@ nessa escala de pontos reais.
   mesmo candle, conta-se como **stop** (conservador).
 - **Regras e alvos/stops foram fixados A PRIORI** e todas são reportadas, inclusive as perdedoras.
 - Estatística `t` = t-Student da média por operação (quão longe de zero está o retorno médio).
+- **Na série não ajustada** (WIN$N), dias de rolagem e dias cujo pregão anterior está a mais de
+  5 dias corridos ficam sem operação, porque o gap não é overnight. Só `fora_da_amostra.py` faz isso.
 
 ---
 
@@ -137,39 +159,81 @@ Ou seja: entrar sem edge perde por causa do custo. Qualquer regra tem que bater 
 - **Saídas da regra 0,30/0,30:** 31 por alvo, 59 por tempo (9:15), 8 por stop. Ou seja, a maioria
   dos dias **sai zerando no horário**, não batendo o alvo — nada de "dia resolvido 9:12".
 
+### 4.7 Fora da amostra: 2012-09-21 a 2026-08-25 (`scripts/fora_da_amostra.py`)
+Regra congelada ("contra o gap", 0,30/0,30, entrada 9:02, saída no alvo, no stop ou às 9:15),
+sem nenhuma reotimização, no arquivo WIN$N. Dentro da amostra (2012-05-02 a 2012-09-20) o
+arquivo bruto reproduz a série ajustada (n=96, 57,3%, +31,8/op, t 2,86; a diferença são 2 dias
+de rolagem sem operação), o que valida o pipeline.
+
+| Período | n | Acerto | Média/op | Total | maxDD | t |
+|---|---|---|---|---|---|---|
+| Fora da amostra, custo 10 | 2921 | 47,4% | **-6,9** | -20.185 | -24.592 | **-1,85** |
+| Fora da amostra, custo 20 | 2921 | 45,0% | -16,9 | -49.395 | -50.600 | -4,52 |
+| Fora da amostra, custo 0 | 2921 | 49,8% | +3,1 | +9.025 | — | 0,83 |
+
+- Saídas: 529 por alvo (18%), 1.867 por tempo, 525 por stop.
+- Por ano: 5 positivos em 15 (2012, 2019, 2022, 2024, 2025); piores 2020 (-26/op) e 2026
+  (-28,6/op). O trecho 2022-2025 positivo é seleção a posteriori: 4ª melhor de 120 janelas de
+  anos contíguos, e o acaso produz isso em 26% dos sorteios.
+- As outras 23 combinações da grade também são negativas fora da amostra com custo 10.
+- Base aleatória nos mesmos 2.921 dias (1.000 sorteios de direção): mediana -29.808; a regra fica
+  no percentil 80, que é só outra forma de dizer t = 0,83 do ganho bruto.
+- Gaps grandes, que em 2012 pareciam a fonte do edge, são o **pior quartil** fora da amostra
+  (|gap| ≥ 0,5%: -18,6/op, t -2,58).
+- Nenhuma variante salva: alvo em pontos fixos, em %, normalizado por volatilidade ou múltiplo do
+  gap; sem alvo/stop; segurar até 9:29, 9:59 ou 10:29; walk-forward entre as 24 combinações
+  (-12,7/op, t -3,84); incluir os dias sem candle de 9:00 com entrada no 1º candle disponível.
+- Verificação independente (sessão de 2026-10-10): reimplementação do zero a partir da
+  especificação reproduziu todos os números (n, totais por ano, saídas); auditoria de código sem
+  lookahead; varredura dos dados sem candle inválido; cético e crítico não encontraram ângulo que
+  mude a conclusão.
+
+### 4.8 Mudança no regime de abertura (desde out/nov de 2025)
+- Dias sem candle de 9:00: 3% em 2024, ~10% em jan-set/2025, **55%** de 2025-11-04 a 2026-09-02
+  (1º candle às 9:02 em 18% dos dias e às 9:03 em 35%).
+- Nesses dias o 1º candle tem 2 a 3,5 vezes o volume dos candles seguintes e dezenas de milhares
+  de negócios: é o print do leilão de abertura. Em 2026 o candle de 9:02 tem range mediano de
+  400 pts, 74% do alvo de 0,30% (543 pts).
+- Causa provável, **não confirmada em fonte primária** (o proxy bloqueou b3.com.br): Ofícios
+  Circulares B3 048/2025-VNC e 056/2025-VNC, que sincronizam os leilões de pré-abertura de
+  WIN/IND, WDO/DOL e WSP/ISP com encerramento aleatório, em fases a partir de 24/11/2025. O padrão
+  nos dados começa em 2025-10-07.
+- Consequência: o resultado de 2026 (82 operações) cobre só os dias que abriram às 9:00. Uma
+  variante adaptada (gap pelo 1º candle, entrada no seguinte) nos dias sem 9:00 desde 2025-10-07
+  dá +20,9/op com t 0,53: nada, e escolhida depois de ver os dados.
+
 ---
 
 ## 5. Conclusão atual
 
-- **Operar a abertura do WIN é viável** em liquidez e volatilidade.
-- **A imagem exagera:** "alvo batido 9:12, dia resolvido" não é a rotina; na melhor regra só 1/3
-  dos dias bate o alvo e a maioria sai no horário com resultado pequeno.
-- **Candidata a edge:** "contra o gap", entrada 9:02, alvo e stop de **0,30%**, saída 9:15.
-  ~57% de acerto, ~+32 pts/op (≈ R$ 6,40 por minicontrato/dia antes do IR), sobreviveu às metades,
-  ao custo dobrado e à remoção dos melhores dias.
-- **Mas NÃO está validada.** Ver seção 6.
+- **O operacional da imagem não se sustenta.** A regra escolhida em 2012 era ruído de seleção
+  entre 24 combinações em 99 dias: fora da amostra não tem edge nem antes dos custos.
+- **Nenhuma das 24 combinações** da grade é positiva fora da amostra.
+- **Custo real** do WIN hoje (B3 ~2,5 pts ida e volta, corretagem de 0 a 25 pts, slippage de pelo
+  menos 1 tick por ponta) fica entre 12 e 40+ pts, acima dos 10 usados no teste; só piora.
+- **A janela 9:00-9:02 deixou de existir** em metade dos pregões desde o fim de 2025; qualquer
+  operacional de abertura hoje tem que partir do print do leilão.
+- Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---
 
-## 6. O que falta analisar (lista priorizada para a próxima sessão)
+## 6. O que falta (e o que não vale a pena)
 
-1. **[CRÍTICO] Validação out-of-sample.** Rodar a regra "contra o gap 0,30/0,30" **já congelada**
-   (sem reotimizar nada) em dados que ainda não foram olhados: 2013 até hoje. Se ela mantiver
-   acerto ~55–60% e média positiva líquida de custo, vira evidência de verdade. Se não, era
-   overfitting dos 99 dias de 2012.
-2. **Mais dados.** O CSV atual é a "parte 1". Juntar as outras partes (WINFUT_20MB_2.csv, …) —
-   os scripts já aceitam vários arquivos e remontam dias fatiados.
-3. **Risco de múltiplos testes.** Foram 24 combinações (6 regras × 4 pares). Um t≈2 pode sair por
-   acaso. Com mais dados, refazer só a regra escolhida corrige isso.
-4. **Custo realista de hoje.** Corretagem + emolumentos + slippage reais do WIN atual (não 2012).
-   Confirmar se +32 pts/op sobrevive ao custo de verdade.
-5. **Mudanças estruturais desde 2012.** Entrada em massa do varejo, HFT, horários da B3, e dados
-   macro (IBGE, etc.) saindo às 9:00. Testar se o edge persiste por ano.
-6. **Definição do gap ao vivo.** Hoje o script usa (abertura 9:00 vs fechamento do dia anterior).
-   Confirmar a fonte de preço no tempo real (ajuste, leilão de abertura).
-7. **Gestão.** Drawdown em sequência de dias de gap grande, tamanho de posição, pior sequência de
-   perdas, e se o resultado aguenta 1 contrato vs vários.
-8. **Walk-forward** se houver anos suficientes (otimiza num período, testa no seguinte, rola).
+Os itens 1 a 5 e 7 a 8 da lista anterior (validação fora da amostra, mais dados, múltiplos testes,
+ordem de grandeza dos custos, resultado por ano, walk-forward) foram feitos; ver 4.7 e 4.8.
+
+1. **Regime de abertura.** Ler os Ofícios Circulares B3 048/2025-VNC e 056/2025-VNC (ou a grade
+   vigente) para saber a janela de encerramento do leilão de pré-abertura do WIN. Isso muda a
+   descrição de qualquer operacional de abertura, não a estatística.
+2. **Custos do próprio usuário.** Tabela da corretora (corretagem, RLP) e emolumentos atuais da
+   B3, convertidos em pontos.
+3. **Hipótese nova, só com pré-registro.** O único ângulo com alguma tração foi "fade do leilão
+   prolongado" (dias sem candle de 9:00: gap pelo print do leilão, entrada no candle seguinte):
+   +12 a +22 pts/op com t de 0,8 a 1,5, mas todo o ganho vem de 2025-2026 (127 operações) e
+   contradiz o que acontece nos dias normais com gap grande. Se for testar, fixar a regra agora e
+   usar só dados posteriores a 2026-09.
+4. **Não vale a pena:** reotimizar a grade, walk-forward, gestão de risco/sizing, subperíodos
+   escolhidos olhando a tabela por ano. Todos foram checados e não mudam a conclusão.
 
 ---
 
@@ -180,10 +244,15 @@ Ou seja: entrar sem edge perde por causa do custo. Qualquer regra tem que bater 
   retrospecto, as 24 combinações de regras e a base aleatória.
 - `scripts/robustez.py` — metades do período, custo dobrado, sem os 5 melhores dias, por tamanho
   do gap.
+- `scripts/fora_da_amostra.py` — a regra congelada em dados novos (série WIN$N): separa o
+  período de 2012, exclui rolagem e buracos, mostra o resultado por ano, o resto da grade e uma
+  base aleatória nos mesmos dias.
+- `resultados/fora_da_amostra_2012-2026.txt` — saída completa do teste fora da amostra, com o
+  sha256 do CSV usado (o CSV de 154 MB não está no repositório).
 - `README.md` — como rodar e premissas.
 - `HANDOFF.md` — este arquivo.
 
-Ambos os scripts usam só a biblioteca padrão do Python (sem pandas/numpy).
+Os scripts usam só a biblioteca padrão do Python (sem pandas/numpy).
 
 ---
 
@@ -194,12 +263,15 @@ Ambos os scripts usam só a biblioteca padrão do Python (sem pandas/numpy).
 python3 scripts/abertura.py
 python3 scripts/robustez.py
 
-# Com outros dados (um ou mais CSVs no formato do Profit):
+# Com outros dados (um ou mais CSVs no formato do Profit, série ajustada WIN$D):
 python3 scripts/abertura.py WINFUT_20MB_1.csv WINFUT_20MB_2.csv
 python3 scripts/robustez.py dados_2013.csv dados_2014.csv
+
+# Teste fora da amostra (série WIN$N, não ajustada; o arquivo não está no repositório):
+python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv
 ```
 
 Arquivos fatiados são unidos automaticamente: um dia cortado entre dois arquivos é remontado,
 linhas repetidas de (data, hora) são descartadas e candles de after-market (`<aft> = S`) são
-ignorados. Para a validação out-of-sample (item 1 da seção 6), basta passar os CSVs novos como
-argumento — **não mexer nos parâmetros da regra**.
+ignorados. `abertura.py` e `robustez.py` não tratam rolagem: use-os só com a série ajustada.
+Para repetir o teste fora da amostra em outro arquivo, **não mexer nos parâmetros da regra**.

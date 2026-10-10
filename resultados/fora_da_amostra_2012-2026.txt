@@ -1,0 +1,95 @@
+# Saída de: python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv
+# Dados: exportação do Profit, WIN$N, candles de 1 min, 2012-05-02 a 2026-09-02, 1.915.016 linhas, 154.659.726 bytes (não incluído no repositório)
+# sha256 do CSV: 258b23b118fe467e6a0be948cd2d5038fb5f456d4834edc253591b08bd1744b3
+
+Pregões no arquivo: 3533 (20120502 a 20260902). Avaliáveis (barra 9:00/9:01 e >=5 barras a partir de 9:02): 3138
+Pregões pulados por ano (sem barra 9:00/9:01 ou dia incompleto): {'2012': 2, '2013': 1, '2014': 1, '2015': 1, '2016': 42, '2017': 9, '2018': 46, '2019': 20, '2020': 81, '2021': 29, '2022': 17, '2023': 8, '2024': 5, '2025': 49, '2026': 84}
+
+1) Dias de rolagem (sem operação): 84. Gap do dia (anterior | seguinte); '?' = gap abaixo do p90 dos dias normais (0.95%)
+   20120613 +0.64% (+0.18|-0.17)?   20120815 +0.69% (+0.67|+0.15)?   20121017 +0.93% (+0.54|-0.40)?
+   20121212 +1.17% (+0.15|-0.33)    20130213 +0.99% (+0.05|-0.64)    20130417 -0.74% (+1.13|+0.24)?
+   20130612 +1.58% (-1.16|-0.89)    20130814 -1.31% (+0.00|-1.03)    20131016 -0.52% (-0.29|+0.13)?
+   20131218 +0.85% (-0.21|-0.48)?   20140212 +1.65% (+0.45|-0.46)    20140416 +2.10% (-0.04|-0.54) 
+   20140618 +1.63% (-0.05|-0.63)    20140813 +2.37% (-0.29|-0.10)    20141015 +1.16% (-0.78|-2.06) 
+   20141217 +1.64% (-0.14|+1.62)    20150218 +1.93% (+0.49|+0.01)    20150415 +1.60% (-0.06|-0.54) 
+   20150617 +1.90% (-0.27|+0.40)    20150812 +0.79% (-0.72|+0.37)?   20151014 +1.99% (-1.31|+0.74) 
+   20151216 +1.36% (+0.83|+0.00)    20160217 +1.60% (+0.47|-0.48)    20160413 +3.30% (+1.55|+0.46) 
+   20160615 +2.71% (-0.97|-0.70)    20160817 +1.64% (-0.30|-0.54)    20161013 +1.30% (-0.19|+0.50) 
+   20170215 +2.08% (+0.12|-0.35)    20170412 +0.83% (-0.06|-0.25)?   20170816 +1.52% (+0.00|-0.29) 
+   20171018 +1.23% (-0.07|-0.68)    20171213 +1.07% (-0.25|-0.47)    20180214 +3.48% (+0.20|+0.91) 
+   20180418 +1.11% (+0.50|+0.35)    20180613 +1.10% (-0.01|+0.16)    20180815 +0.33% (+0.39|+0.71)?
+   20181017 +0.47% (+0.92|-0.35)?   20181212 +1.46% (+0.74|+0.23)    20190213 +1.40% (+0.63|+0.19) 
+   20190417 +1.08% (+0.37|+0.59)    20190612 +0.49% (+0.50|+0.46)?   20190814 -0.71% (-0.27|+0.58)?
+   20191016 +0.91% (+0.09|+0.23)?   20191218 +0.73% (+0.22|-0.20)?   20200212 +1.39% (+0.56|-1.06) 
+   20200415 -2.58% (+1.31|+0.54)    20200617 +0.94% (+1.71|-1.44)?   20200812 +0.53% (+1.19|-0.27)?
+   20201014 +0.11% (+0.54|-1.08)?   20201216 +0.25% (+0.51|+0.17)?   20210217 +0.10% (-0.49|-0.15)?
+   20210414 +0.40% (-0.47|+0.14)?   20210616 +0.48% (+0.13|-0.07)?   20210818 +1.49% (-0.26|-1.50) 
+   20211013 +1.13% (+0.18|+0.83)    20211215 +1.76% (-0.45|+0.69)    20220216 +0.97% (+0.47|-0.33) 
+   20220413 +1.97% (+0.37|-0.20)    20220615 +2.74% (+0.19|-1.97)    20220817 +1.02% (-0.15|+0.26) 
+   20221013 +2.53% (-0.59|+0.43)    20221214 +1.47% (+0.21|-0.60)    20230215 +1.88% (+0.18|+0.07) 
+   20230412 +1.72% (+0.38|+0.09)    20230614 +2.32% (+0.14|-0.40)    20230816 +2.31% (-0.55|+0.63) 
+   20231018 +1.24% (-0.24|-0.09)    20231213 +1.71% (+0.19|+0.31)    20240214 +1.06% (+0.25|+0.21) 
+   20240417 +2.16% (+0.00|+0.35)    20240612 +1.48% (-0.49|+0.16)    20240814 +1.56% (+0.07|+0.12) 
+   20241016 +1.85% (-0.44|-0.09)    20241218 +1.43% (+0.05|+0.55)    20250212 +1.93% (+0.08|+0.41) 
+   20250416 +1.74% (-0.02|+0.22)    20250618 +1.99% (-0.20|-0.05)    20250813 +2.17% (+0.41|-0.11) 
+   20251015 +2.28% (-0.73|-0.01)    20251217 +2.43% (-0.99|+0.12)    20260218 +2.02% (-0.34|+0.17) 
+   20260415 +2.16% (+0.35|+0.14)    20260617 +2.04% (+0.32|+0.16)    20260812 +2.35% (+0.04|+0.14) 
+   mediana do gap nos dias de rolagem: +1.47% | mediana |gap| nos demais dias: 0.33%
+   Dias avaliáveis sem operação: rolagem 73, buraco de dados (> 5 dias corridos) 2
+
+2) Dentro da amostra (20120502 a 20120920, 99 pregões), série bruta, custo 10:
+   Contra o gap 0.30/0.30             n=  96 acerto= 57.3% média=  31.8 total=   3051 maxDD=  -372 t= 2.86  saídas alvo/tempo/stop=30/58/8
+   referência na série ajustada (abertura.py, inclui os dias de rolagem): n=98 acerto=57.1% média=32.4 total=3171 maxDD=-417 t=2.94
+
+3) FORA DA AMOSTRA (20120921 a 20260825, 3039 pregões avaliáveis). Regra congelada:
+   Contra o gap 0.30/0.30 custo 10    n=2921 acerto= 47.4% média=  -6.9 total= -20185 maxDD=-24592 t=-1.85  saídas alvo/tempo/stop=529/1867/525
+   Contra o gap 0.30/0.30 custo 20    n=2921 acerto= 45.0% média= -16.9 total= -49395 maxDD=-50600 t=-4.52  saídas alvo/tempo/stop=529/1867/525
+   nível médio do WIN no período: 91,614 pts (0,30% ≈ 275 pts)
+
+4) Por ano, fora da amostra, custo 10:
+   ano  pregões    n acerto%  média   total  maxDD     t     nível 0,30%
+   2012      63   62    45.2    5.6     348   -479  0.54    58,893   177
+   2013     247  237    43.9  -13.2   -3133  -3316 -2.04    53,626   161
+   2014     247  238    46.2   -9.5   -2267  -3461 -1.22    53,152   159
+   2015     245  233    49.4   -6.8   -1594  -2472 -0.86    50,196   151
+   2016     195  189    40.2  -21.6   -4080  -4254 -2.62    53,472   160
+   2017     225  212    43.4  -14.4   -3048  -3485 -1.75    68,863   207
+   2018     199  191    44.5  -17.8   -3391  -4512 -1.42    82,088   246
+   2019     228  220    49.1    2.4     527  -2456  0.20   101,331   304
+   2020     168  161    40.4  -26.0   -4192  -4514 -1.59   101,756   305
+   2021     218  209    49.8   -6.1   -1268  -3417 -0.38   117,732   353
+   2022     233  226    52.2   11.7    2633  -3200  0.74   110,589   332
+   2023     240  232    47.4  -11.9   -2769  -5298 -0.80   115,076   345
+   2024     246  238    51.7    5.0    1186  -4576  0.31   129,461   388
+   2025     201  191    55.0   16.8    3212  -2721  0.83   136,650   410
+   2026      84   82    51.2  -28.6   -2347  -5432 -0.53   181,100   543
+   anos positivos: 5/15 | total acumulado: -20185 pts
+
+5) Fora da amostra, as outras combinações de abertura.py (NÃO pré-registradas; só contexto), custo 10:
+   Momentum 2min (segue 9:00-9:02) 0.20/0.20 n=2994 acerto= 49.7% média=  -6.4 total= -19115 maxDD=-23587 t=-2.10  saídas alvo/tempo/stop=1025/1033/936
+   Momentum 2min (segue 9:00-9:02) 0.30/0.15 n=2994 acerto= 42.6% média=  -3.7 total= -10980 maxDD=-18627 t=-1.17  saídas alvo/tempo/stop=538/1125/1331
+   Momentum 2min (segue 9:00-9:02) 0.15/0.30 n=2994 acerto= 57.2% média=  -7.1 total= -21336 maxDD=-27049 t=-2.31  saídas alvo/tempo/stop=1461/1089/444
+   Momentum 2min (segue 9:00-9:02) 0.30/0.30 n=2994 acerto= 49.0% média=  -4.0 total= -11827 maxDD=-23638 t=-1.06  saídas alvo/tempo/stop=600/1901/493
+   Reversão 2min (contra 9:00-9:02) 0.20/0.20 n=2994 acerto= 45.8% média= -13.7 total= -40973 maxDD=-43153 t=-4.49  saídas alvo/tempo/stop=935/1033/1026
+   Reversão 2min (contra 9:00-9:02) 0.30/0.15 n=2994 acerto= 38.8% média= -13.0 total= -38988 maxDD=-40171 t=-4.23  saídas alvo/tempo/stop=442/1089/1463
+   Reversão 2min (contra 9:00-9:02) 0.15/0.30 n=2994 acerto= 52.9% média= -16.3 total= -48900 maxDD=-50557 t=-5.23  saídas alvo/tempo/stop=1331/1125/538
+   Reversão 2min (contra 9:00-9:02) 0.30/0.30 n=2994 acerto= 45.3% média= -16.0 total= -48053 maxDD=-48627 t=-4.32  saídas alvo/tempo/stop=493/1901/600
+   Segue o gap 0.20/0.20              n=2921 acerto= 47.2% média= -12.7 total= -37221 maxDD=-38112 t=-4.15  saídas alvo/tempo/stop=941/1017/963
+   Segue o gap 0.30/0.15              n=2921 acerto= 40.2% média= -11.2 total= -32682 maxDD=-34083 t=-3.59  saídas alvo/tempo/stop=469/1084/1368
+   Segue o gap 0.15/0.30              n=2921 acerto= 54.8% média= -14.0 total= -40773 maxDD=-43016 t=-4.44  saídas alvo/tempo/stop=1345/1098/478
+   Segue o gap 0.30/0.30              n=2921 acerto= 46.6% média= -13.1 total= -38235 maxDD=-41315 t=-3.50  saídas alvo/tempo/stop=525/1867/529
+   Contra o gap 0.20/0.20             n=2921 acerto= 48.0% média=  -7.3 total= -21407 maxDD=-25552 t=-2.39  saídas alvo/tempo/stop=962/1017/942
+   Contra o gap 0.30/0.15             n=2921 acerto= 41.0% média=  -6.1 total= -17857 maxDD=-19291 t=-1.95  saídas alvo/tempo/stop=477/1098/1346
+   Contra o gap 0.15/0.30             n=2921 acerto= 55.2% média=  -8.9 total= -25972 maxDD=-29619 t=-2.85  saídas alvo/tempo/stop=1367/1084/470
+   Contra o gap 0.30/0.30             n=2921 acerto= 47.4% média=  -6.9 total= -20185 maxDD=-24592 t=-1.85  saídas alvo/tempo/stop=529/1867/525
+   Sempre comprado 0.20/0.20          n=3039 acerto= 45.9% média= -13.4 total= -40723 maxDD=-42524 t=-4.45  saídas alvo/tempo/stop=958/1051/1030
+   Sempre comprado 0.30/0.15          n=3039 acerto= 39.2% média= -10.7 total= -32487 maxDD=-34524 t=-3.48  saídas alvo/tempo/stop=482/1126/1431
+   Sempre comprado 0.15/0.30          n=3039 acerto= 53.7% média= -14.2 total= -43293 maxDD=-45647 t=-4.63  saídas alvo/tempo/stop=1400/1125/514
+   Sempre comprado 0.30/0.30          n=3039 acerto= 45.7% média= -12.4 total= -37607 maxDD=-41345 t=-3.36  saídas alvo/tempo/stop=540/1932/567
+   Sempre vendido 0.20/0.20           n=3039 acerto= 49.4% média=  -6.7 total= -20265 maxDD=-23646 t=-2.21  saídas alvo/tempo/stop=1029/1051/959
+   Sempre vendido 0.30/0.15           n=3039 acerto= 42.2% média=  -5.9 total= -17931 maxDD=-20193 t=-1.92  saídas alvo/tempo/stop=512/1125/1402
+   Sempre vendido 0.15/0.30           n=3039 acerto= 56.3% média=  -9.3 total= -28293 maxDD=-33468 t=-3.03  saídas alvo/tempo/stop=1431/1126/482
+   Sempre vendido 0.30/0.30           n=3039 acerto= 48.5% média=  -7.6 total= -23173 maxDD=-28851 t=-2.07  saídas alvo/tempo/stop=567/1932/540
+
+6) Base aleatória fora da amostra: direção cara/coroa nos mesmos 2921 dias em que a regra opera, alvo/stop 0.30/0.30, custo 10, 1.000 simulações:
+   total: p5 -47395 | mediana -29808 | p95 -10697 | regra real -20185 -> 19.8% das simulações igualam ou superam a regra

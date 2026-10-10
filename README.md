@@ -38,7 +38,16 @@ Premissas do teste:
 - As regras e os alvos/stops foram definidos antes de olhar os resultados, e todas as combinações
   são mostradas. Mesmo assim, com 24 combinações testadas, um t perto de 2 pode sair por acaso.
 
-Com o CSV atual (99 pregões de mai–set/2012), a única regra que se manteve nas duas metades foi
-operar contra o gap, com alvo e stop de 0,30%. Mesmo ela bateu o alvo em só 32% das operações, e a
-maioria saiu por tempo às 9:15. É uma hipótese a validar em dados que ainda não foram olhados, não
-um operacional pronto.
+Com o CSV de 2012 (99 pregões de mai–set), a única regra que se manteve nas duas metades foi
+operar contra o gap, com alvo e stop de 0,30%. Testada depois, sem reotimizar, em
+`WINFUT_NA_BMF_I_v6_raw.csv` (série WIN$N de 1 minuto, 2012-05-02 a 2026-09-02, 154 MB, não
+incluído no repositório), ela não se sustentou: fora da amostra (2012-09-21 a 2026-08-25, 2.921
+operações) perdeu 6,9 pts por operação com custo de 10 pts (t = -1,85), teve 5 anos positivos em
+15 e, sem custo nenhum, rendeu 3,1 pts por operação (t = 0,83), ou seja, nada. As outras 23
+combinações da grade também são negativas fora da amostra. A saída completa está em
+`resultados/fora_da_amostra_2012-2026.txt`.
+
+Dois fatos práticos do mesmo arquivo: desde outubro/novembro de 2025, em cerca de metade dos
+pregões não há negociação às 9:00 e 9:01 e o primeiro candle aparece às 9:02 ou 9:03 com volume de
+leilão, então "ler 9:00-9:02 e entrar às 9:02" não é executável como descrito; e os gaps grandes,
+que em 2012 pareciam a melhor parte da regra, são o pior quartil fora da amostra.
