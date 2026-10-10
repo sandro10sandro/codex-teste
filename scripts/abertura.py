@@ -21,6 +21,17 @@ from pathlib import Path
 CSV_PADRAO = Path(__file__).resolve().parent.parent / 'WINFUT_20MB_1.csv'
 COST = 10  # pontos por ida+volta (≈1 tick de slippage na entrada + 1 na saída/stop; taxas ~ desprezíveis em pts)
 
+# Regras definidas a priori (todas reportadas) e grade de alvo/stop em % do preço de entrada.
+SINAIS = {
+    'Momentum 2min (segue 9:00-9:02)': lambda d: d['mom'],
+    'Reversão 2min (contra 9:00-9:02)': lambda d: -d['mom'],
+    'Segue o gap':                      lambda d: d['gap'],
+    'Contra o gap':                     lambda d: -d['gap'],
+    'Sempre comprado':                  lambda d: 1,
+    'Sempre vendido':                   lambda d: -1,
+}
+GRADE = [(0.20, 0.20), (0.30, 0.15), (0.15, 0.30), (0.30, 0.30)]
+
 
 def carregar(caminhos):
     """Lê um ou mais CSVs e agrupa os candles por dia.
@@ -140,19 +151,10 @@ def main(caminhos):
     print()
 
     # ---------- 4. Regras definidas A PRIORI (todas reportadas) ----------
-    signals = {
-        'Momentum 2min (segue 9:00-9:02)': lambda d: d['mom'],
-        'Reversão 2min (contra 9:00-9:02)': lambda d: -d['mom'],
-        'Segue o gap':                      lambda d: d['gap'],
-        'Contra o gap':                     lambda d: -d['gap'],
-        'Sempre comprado':                  lambda d: 1,
-        'Sempre vendido':                   lambda d: -1,
-    }
-    grid = [(0.20, 0.20), (0.30, 0.15), (0.15, 0.30), (0.30, 0.30)]
     print(f"4) Entrada 9:02, saída alvo/stop ou 9:15. Custo {COST} pts/op. Stop+alvo no mesmo candle = stop.")
     print(f"   {'regra':34s} {'alvo/stop %':>11s} {'n':>4s} {'acerto%':>7s} {'média':>7s} {'total':>7s} {'maxDD':>7s} {'t':>5s}")
-    for name, sig in signals.items():
-        for T, S in grid:
+    for name, sig in SINAIS.items():
+        for T, S in GRADE:
             pn = [run(d, sig(d), T, S)[0] for d in info if sig(d)]
             n, wr, m, tot, dd, t = stats(pn)
             print(f"   {name:34s} {T:.2f}/{S:.2f}   {n:4d} {wr:7.1f} {m:7.1f} {tot:7.0f} {dd:7.0f} {t:5.2f}")

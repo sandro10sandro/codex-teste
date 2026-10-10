@@ -10,10 +10,11 @@ Só usam a biblioteca padrão do Python.
 ```bash
 python3 scripts/abertura.py     # janela 9:00-9:15, volume por horário, regras testadas, base aleatória
 python3 scripts/robustez.py     # metades do período, custo maior, sem os 5 melhores dias, tamanho do gap
+python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv   # regra congelada em dados que não foram usados na escolha
 ```
 
-Sem argumentos, os dois usam `WINFUT_20MB_1.csv`. Para testar outros dados, passe um ou mais
-CSVs no mesmo formato de exportação do Profit
+Sem argumentos, `abertura.py` e `robustez.py` usam `WINFUT_20MB_1.csv`. Para testar outros dados,
+passe um ou mais CSVs no mesmo formato de exportação do Profit
 (`<ticker>,<date>,<time>,<trades>,<close>,<low>,<high>,<open>,<vol>,<qty>,<aft>`):
 
 ```bash
@@ -27,6 +28,11 @@ Premissas do teste:
 
 - A série WIN$D é ajustada multiplicativamente. Os pontos reais são recuperados pelo tamanho do
   tick (5 pts) em cada dia.
+- A série WIN$N não é ajustada: no dia de rolagem (quarta-feira mais próxima do dia 15 dos meses
+  pares, ou o pregão seguinte) o gap entre o fechamento do contrato velho e a abertura do novo é
+  artificial. `fora_da_amostra.py` deixa esses dias sem operação, assim como dias cujo pregão
+  anterior está a mais de 5 dias corridos (buraco nos dados). `abertura.py` e `robustez.py` não
+  fazem isso: use-os só com a série ajustada.
 - Custo de 10 pts por operação (ida e volta), ou 20 pts no teste de robustez.
 - Quando stop e alvo caem no mesmo candle de 1 minuto, conta como stop.
 - As regras e os alvos/stops foram definidos antes de olhar os resultados, e todas as combinações
