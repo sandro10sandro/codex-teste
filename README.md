@@ -75,4 +75,8 @@ as 24 combinações da grade são negativas nas duas metades, a maioria com folg
 segurar, perde 2,7 pts por operação). Às 9:30 o movimento da abertura já não continua (momentum sem
 custo rende -1,7 pts), sobrando só a leve tendência de alta do índice no período, que não paga o
 custo. O rompimento da faixa de 9:00-9:29 é o pior de todos, -29 pts por operação. Às 10:00 segurando 30
-minutos é igual: nada positivo, e nesse horário nem os sinais brutos (sem custo) sobram.
+minutos é igual: nada positivo, e nesse horário nem os sinais brutos (sem custo) sobram. Uma
+varredura ampla (`scripts/varredura.py`) de entradas de 9:30 a 15:00 com 15, 30 ou 60 minutos de
+permanência não achou nenhuma regra positiva nas duas metades após execução realista: a única que
+passou no papel (rompimento às 15:00) sai por tempo em 98,5% dos dias e morre com 1 tick de
+slippage mais confirmação por fechamento.

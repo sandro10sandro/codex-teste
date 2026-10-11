@@ -299,6 +299,26 @@ pregões avaliáveis.
 - A janela 10:00-10:29 é larga (amplitude mediana 440 pts), então o alvo de 0,30% é pequeno perto
   dela e o rompimento (faixa de 1 hora) perde muito, -21/op.
 
+### 4.13 Varredura ampla de horários e durações (`scripts/varredura.py`)
+Entradas de 9:30 a 15:00 (de 30 em 30 min e nas horas cheias), tempo em posição de 15, 30 e 60 min,
+as 24 combinações da grade e o rompimento da faixa lida, custo 10. Critério de edge fixado antes:
+média positiva no período inteiro e nas duas metades, com t >= 1,0 nas duas. Saída em
+`resultados/varredura_horarios_duracoes_2012-2026.txt`.
+
+- De 27 combinações de horário x duração (675 testes de regra), **só uma passou o critério**:
+  entrada às 15:00, segurar 60 min, rompimento da faixa 9:00-14:59 (média +20,1/op, t 2,37; 1ª
+  metade +11,5 t 1,42; 2ª +30,5 t 1,91).
+- Esse candidato **não sobrevive à execução realista**, igual ao rompimento das 9:02:
+  - a faixa 9:00-14:59 tem mediana de ~1.295 pts e o alvo é 1x a faixa, então **98,5% das operações
+    saem por tempo às 16:29**: não é um rompimento com alvo/stop, é segurar a direção até o
+    fechamento;
+  - com 1 tick (5 pts) de slippage na entrada cai para +15,2/op (1ª metade t 0,81); com 2 ticks,
+    +10,2 (1ª metade t 0,21);
+  - exigindo que o candle **feche** além da faixa (entrada no fechamento), cai para +5,9/op com a
+    1ª metade zerada (t 0,03); com 1 tick a mais, +0,8/op (t 0,09), morto;
+  - o ganho bruto é concentrado em 2019 e 2025-2026 (2026 sozinho +134/op em 54 dias).
+- Conclusão: nenhuma combinação de horário e duração produz edge negociável.
+
 ---
 
 ## 5. Conclusão atual
@@ -317,6 +337,9 @@ pregões avaliáveis.
 - **Nem entrando às 9:30 e segurando 30 min:** tudo negativo, e nesse horário o momentum da
   abertura já não continua (ver 4.11).
 - **Nem às 10:00 segurando 30 min:** sem edge, nem antes do custo (ver 4.12).
+- **Nem em nenhum horário de 9:30 a 15:00 com 15, 30 ou 60 min de permanência:** uma varredura de
+  todas essas combinações não achou nenhuma regra positiva nas duas metades após execução realista
+  (ver 4.13).
 - Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---
@@ -361,6 +384,9 @@ ordem de grandeza dos custos, resultado por ano, walk-forward) foram feitos; ver
   padrão 15); `resultados/entrada_por_horario_2012-2026.txt` tem a saída padrão e
   `resultados/entrada_0930_segurar30min_2012-2026.txt` a de 9:30 com 30 min e
   `resultados/entrada_1000_segurar30min_2012-2026.txt` a de 10:00 com 30 min.
+- `scripts/varredura.py` — varre horários de entrada (9:30 a 15:00) e durações (15/30/60 min) e
+  reporta se alguma combinação passa o critério de edge; `resultados/varredura_horarios_duracoes_2012-2026.txt`
+  tem a saída e o stress do único candidato.
 - `README.md` — como rodar e premissas.
 - `HANDOFF.md` — este arquivo.
 
