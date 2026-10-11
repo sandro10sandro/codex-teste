@@ -1,0 +1,56 @@
+# Varredura ampla de horários de entrada x tempo em posição, mais stress do único candidato.
+# python3 scripts/varredura.py WINFUT_NA_BMF_I_v6_raw.csv
+# Dados: WIN$N 1 min, 2012-05-02 a 2026-09-02; sha256 258b23b118fe467e6a0be948cd2d5038fb5f456d4834edc253591b08bd1744b3 (CSV não incluído)
+
+Varredura: 9 horários x 3 durações x (24 regras + rompimento), custo 10.
+Edge = média > 0 no período todo e nas duas metades, com t >= 1.0 nas duas.
+
+   entrada dur  dias  melhor regra (por menor t das 2 metades)       todo    t1    t2
+   09:30    15  3510  Segue o gap 0.30/0.30                          -5.7 -1.77 -1.33
+   10:00    15  3511  Reversão desde 9:00 0.30/0.30                  -6.6 -1.34 -1.39
+   10:30    15  3510  Sempre vendido 0.30/0.30                       -3.1 -0.05 -0.88
+   11:00    15  3510  Momentum desde 9:00 0.15/0.30                  -3.3 -0.88 -0.86
+   11:30    15  3512  Contra o gap 0.30/0.30                         -8.2 -2.22 -1.52
+   12:00    15  3515  Contra o gap 0.20/0.20                         -6.7 -1.89 -1.89
+   13:00    15  3512  Contra o gap 0.15/0.30                         -5.1 -2.12 -1.44
+   14:00    15  3513  Reversão desde 9:00 0.15/0.30                  -9.2 -3.29 -2.99
+   15:00    15  3511  Contra o gap 0.30/0.30                         -7.1 -2.91 -1.48
+
+   09:30    30  3511  Sempre comprado 0.30/0.30                      -3.6 -0.48 -0.95
+   10:00    30  3512  Contra o gap 0.30/0.30                          0.6  0.63 -0.16
+   10:30    30  3510  Sempre vendido 0.30/0.30                       -3.4 -0.06 -0.84
+   11:00    30  3511  Momentum desde 9:00 0.30/0.30                  -0.2 -1.01  0.48
+   11:30    30  3512  Reversão desde 9:00 0.30/0.30                 -10.0 -1.89 -1.87
+   12:00    30  3515  Contra o gap 0.20/0.20                         -3.9 -1.85 -0.47
+   13:00    30  3512  Sempre vendido 0.15/0.30                       -4.8 -1.65 -1.17
+   14:00    30  3514  Reversão desde 9:00 0.30/0.30                  -8.7 -2.22 -1.98
+   15:00    30  3511  Contra o gap 0.30/0.30                         -7.5 -1.92 -1.58
+
+   09:30    60  3511  Sempre comprado 0.30/0.30                      -6.5 -1.16 -0.99
+   10:00    60  3512  Contra o gap 0.30/0.30                          2.2  0.07  0.47
+   10:30    60  3510  Sempre vendido 0.30/0.30                       -1.4 -0.30 -0.18
+   11:00    60  3511  Momentum desde 9:00 0.15/0.30                  -1.5 -0.90 -0.02
+   11:30    60  3512  Sempre comprado 0.30/0.15                      -8.6 -1.77 -1.92
+   12:00    60  3515  Contra o gap 0.20/0.20                         -0.7 -1.36  0.48
+   13:00    60  3512  Momentum desde 9:00 0.30/0.30                  -6.0 -1.42 -0.99
+   14:00    60  3514  Reversão desde 9:00 0.30/0.30                 -10.0 -1.94 -1.91
+   15:00    60  3511  Momentum desde 9:00 0.30/0.30                  -9.0 -1.81 -1.68
+
+================================================================================
+CANDIDATOS COM EDGE (1): média > 0 e t >= 1.0 nas duas metades
+   entrada 15:00 dur 60: Rompimento | todo média +20.1 t 2.37 | 1ª +11.5 t 1.42 | 2ª +30.5 t 1.91
+
+================================================================================
+STRESS DO ÚNICO CANDIDATO (entrada 15:00, dur 60, rompimento da faixa 9:00-14:59):
+O "alvo = 1x a faixa" fica a ~1295 pts; 98,5% das operações saem por TEMPO às 16:29,
+ou seja, não é um rompimento com alvo/stop, é segurar a direção até o fechamento.
+
+Dias avaliáveis: 3511; faixa 9:00-14:59 mediana 1295 pts (alvo = 1x a faixa)
+  toque, custo 10, sem slippage              n=1563 média=  20.1 t= 2.37 saídas={'tempo': 1539, 'alvo': 20, 'stop': 4} | 1ª t= 1.42 m=  11.5 | 2ª t= 1.91 m=  30.5
+  toque + 1 tick (5 pts) entrada             n=1563 média=  15.2 t= 1.79 saídas={'tempo': 1539, 'alvo': 20, 'stop': 4} | 1ª t= 0.81 m=   6.6 | 2ª t= 1.60 m=  25.6
+  toque + 2 ticks (10 pts) entrada           n=1563 média=  10.2 t= 1.21 saídas={'tempo': 1539, 'alvo': 20, 'stop': 4} | 1ª t= 0.21 m=   1.7 | 2ª t= 1.29 m=  20.6
+  confirmar fechamento, entra no close       n=1438 média=   5.9 t= 0.70 saídas={'tempo': 1419, 'alvo': 16, 'stop': 3} | 1ª t= 0.03 m=   0.3 | 2ª t= 0.80 m=  13.0
+  confirmar fechamento + 1 tick              n=1438 média=   0.8 t= 0.09 saídas={'tempo': 1420, 'alvo': 15, 'stop': 3} | 1ª t=-0.64 m=  -5.1 | 2ª t= 0.50 m=   8.0
+
+Por ano (toque, custo 10):
+  2012 +20(n89)  2013 +28(n123)  2014 +32(n134)  2015 -11(n112)  2016 -8(n124)  2017 -11(n96)  2018 +11(n121)  2019 +54(n106)  2020 +27(n129)  2021 -3(n112)  2022 +13(n108)  2023 +24(n95)  2024 -6(n85)  2025 +60(n75)  2026 +134(n54)

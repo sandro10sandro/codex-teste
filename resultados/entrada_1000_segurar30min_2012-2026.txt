@@ -1,0 +1,44 @@
+# Saída de: python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv --dur=30 10:00
+# Dados: exportação do Profit, WIN$N, candles de 1 min, 2012-05-02 a 2026-09-02 (não incluído no repositório)
+# sha256 do CSV: 258b23b118fe467e6a0be948cd2d5038fb5f456d4834edc253591b08bd1744b3
+
+
+=== Entrada 10:00 (leitura 09:00-09:59, saída até o fechamento de 10:29, rompimento até 10:59) ===
+Avaliáveis: 3512 de 3533 pregões | 1ª metade 20120502 a 20190729 | 2ª metade 20190730 a 20260901 | sem gap por rolagem/buraco: 80
+Amplitude mediana da janela operada: 440 pts; 0,30% ≈ 280 pts
+   regra                              alvo/stop               todo              |           1ª metade            |           2ª metade           
+   Momentum desde 9:00                0.20/0.20  n=3481 média=  -9.9 t=-3.05 | n=1738 média= -13.1 t=-4.43 | n=1743 média=  -6.6 t=-1.15
+   Momentum desde 9:00                0.30/0.15  n=3481 média= -12.2 t=-3.62 | n=1738 média= -17.8 t=-5.97 | n=1743 média=  -6.5 t=-1.08
+   Momentum desde 9:00                0.15/0.30  n=3481 média=  -9.0 t=-2.70 | n=1738 média= -13.1 t=-4.22 | n=1743 média=  -5.0 t=-0.85
+   Momentum desde 9:00                0.30/0.30  n=3481 média= -13.1 t=-3.06 | n=1738 média= -19.8 t=-5.06 | n=1743 média=  -6.5 t=-0.85
+   Reversão desde 9:00                0.20/0.20  n=3481 média= -10.2 t=-3.16 | n=1738 média=  -6.9 t=-2.31 | n=1743 média= -13.6 t=-2.36
+   Reversão desde 9:00                0.30/0.15  n=3481 média= -11.1 t=-3.32 | n=1738 média=  -6.9 t=-2.24 | n=1743 média= -15.2 t=-2.58
+   Reversão desde 9:00                0.15/0.30  n=3481 média=  -7.8 t=-2.33 | n=1738 média=  -2.2 t=-0.72 | n=1743 média= -13.5 t=-2.24
+   Reversão desde 9:00                0.30/0.30  n=3481 média=  -6.9 t=-1.60 | n=1738 média=  -0.2 t=-0.04 | n=1743 média= -13.5 t=-1.77
+   Segue o gap                        0.20/0.20  n=3384 média= -19.4 t=-5.93 | n=1686 média= -16.6 t=-5.53 | n=1698 média= -22.2 t=-3.82
+   Segue o gap                        0.30/0.15  n=3384 média= -17.2 t=-5.12 | n=1686 média= -17.9 t=-5.91 | n=1698 média= -16.5 t=-2.75
+   Segue o gap                        0.15/0.30  n=3384 média= -14.4 t=-4.19 | n=1686 média= -13.1 t=-4.17 | n=1698 média= -15.7 t=-2.58
+   Segue o gap                        0.30/0.30  n=3384 média= -20.6 t=-4.73 | n=1686 média= -22.5 t=-5.65 | n=1698 média= -18.8 t=-2.43
+   Contra o gap                       0.20/0.20  n=3384 média=  -0.7 t=-0.20 | n=1686 média=  -3.4 t=-1.12 | n=1698 média=   2.0 t= 0.35
+   Contra o gap                       0.30/0.15  n=3384 média=  -5.6 t=-1.63 | n=1686 média=  -6.9 t=-2.22 | n=1698 média=  -4.3 t=-0.70
+   Contra o gap                       0.15/0.30  n=3384 média=  -2.9 t=-0.87 | n=1686 média=  -2.1 t=-0.68 | n=1698 média=  -3.8 t=-0.63
+   Contra o gap                       0.30/0.30  n=3384 média=   0.6 t= 0.14 | n=1686 média=   2.5 t= 0.63 | n=1698 média=  -1.2 t=-0.16
+   Sempre comprado                    0.20/0.20  n=3512 média= -16.1 t=-5.01 | n=1756 média= -13.3 t=-4.51 | n=1756 média= -18.9 t=-3.31
+   Sempre comprado                    0.30/0.15  n=3512 média= -16.5 t=-5.01 | n=1756 média= -13.4 t=-4.44 | n=1756 média= -19.7 t=-3.35
+   Sempre comprado                    0.15/0.30  n=3512 média= -13.8 t=-4.09 | n=1756 média=  -8.6 t=-2.83 | n=1756 média= -19.0 t=-3.16
+   Sempre comprado                    0.30/0.30  n=3512 média= -14.0 t=-3.28 | n=1756 média= -13.7 t=-3.50 | n=1756 média= -14.4 t=-1.89
+   Sempre vendido                     0.20/0.20  n=3512 média=  -4.0 t=-1.24 | n=1756 média=  -6.7 t=-2.28 | n=1756 média=  -1.2 t=-0.22
+   Sempre vendido                     0.30/0.15  n=3512 média=  -6.3 t=-1.88 | n=1756 média= -11.4 t=-3.76 | n=1756 média=  -1.2 t=-0.21
+   Sempre vendido                     0.15/0.30  n=3512 média=  -3.5 t=-1.05 | n=1756 média=  -6.6 t=-2.19 | n=1756 média=  -0.3 t=-0.06
+   Sempre vendido                     0.30/0.30  n=3512 média=  -6.0 t=-1.40 | n=1756 média=  -6.3 t=-1.62 | n=1756 média=  -5.6 t=-0.74
+   sem custo, 0,30/0,30:
+   Momentum desde 9:00                           n=3481 média=  -3.1 t=-0.73 | n=1738 média=  -9.8 t=-2.51 | n=1743 média=   3.5 t= 0.46
+   Segue o gap                                   n=3384 média= -10.6 t=-2.44 | n=1686 média= -12.5 t=-3.14 | n=1698 média=  -8.8 t=-1.13
+   Sempre comprado                               n=3512 média=  -4.0 t=-0.94 | n=1756 média=  -3.7 t=-0.94 | n=1756 média=  -4.4 t=-0.57
+   Rompimento da faixa lida (todo)    n=3266 acerto= 48.2% média= -21.2 total= -69115 maxDD=-71740 t=-2.89  saídas alvo/tempo/stop=545/2027/694
+   Rompimento, metades                           n=1626 média= -25.0 t=-3.59 | n=1640 média= -17.4 t=-1.36
+
+=== RESUMO POR HORÁRIO (custo 10, salvo onde indicado) ===
+   entrada  dias  melhor regra da grade (por t)                 média     t 1ª met. 2ª met. | momentum s/ custo | rompimento
+   10:00    3512  Contra o gap 0.30/0.30                          0.6  0.14     2.5    -1.2 |   -3.1 (t -0.73) |  -21.2 (t -2.89)
+   Com 25 regras por horário, uma regra com t ≈ 2 num só período é esperada por acaso.
