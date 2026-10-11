@@ -279,6 +279,26 @@ Leitura de 9:00 a 9:29, entrada na abertura de 9:30, saída no alvo, no stop ou 
 - O rompimento da faixa de 9:00-9:29 (faixa larga, mediana ~290 pts) é o pior de tudo, -29/op: a
   faixa é grande demais e o preço vai e volta dentro dela.
 
+### 4.12 Entrada às 10:00, segurando 30 minutos (`entrada_por_horario.py --dur=30 10:00`)
+Leitura de 9:00 a 9:59, entrada na abertura de 10:00, saída até o fechamento de 10:29; rompimento da
+faixa 9:00-9:59 até 10:59. Saída em `resultados/entrada_1000_segurar30min_2012-2026.txt`. 3.512
+pregões avaliáveis.
+
+| Regra (custo 10) | n | Média/op | t | 1ª metade | 2ª metade |
+|---|---|---|---|---|---|
+| Contra o gap 0,30/0,30 (a melhor) | 3384 | +0,6 | +0,14 | +2,5 | -1,2 |
+| Momentum 0,20/0,20 | 3481 | -9,9 | -3,05 | -13,1 | -6,6 |
+| Sempre comprado 0,20/0,20 | 3512 | -16,1 | -5,01 | -13,3 | -18,9 |
+| Segue o gap 0,20/0,20 | 3384 | -19,4 | -5,93 | -16,6 | -22,2 |
+| Rompimento da faixa 9:00-9:59 | 3266 | -21,2 | -2,89 | -25,0 | -17,4 |
+
+- A melhor regra da grade (contra o gap 0,30/0,30) tem média +0,6/op, t 0,14, indistinguível de zero
+  e já negativa na 2ª metade. Todo o resto perde.
+- Às 10:00 nem os sinais brutos (sem custo) são positivos: momentum -3,1/op, segue o gap -10,6,
+  sempre comprado -4,0. A tendência de alta que ainda aparecia às 9:30 já se esgotou.
+- A janela 10:00-10:29 é larga (amplitude mediana 440 pts), então o alvo de 0,30% é pequeno perto
+  dela e o rompimento (faixa de 1 hora) perde muito, -21/op.
+
 ---
 
 ## 5. Conclusão atual
@@ -296,6 +316,7 @@ Leitura de 9:00 a 9:29, entrada na abertura de 9:30, saída no alvo, no stop ou 
   movimento desde a abertura existe (~10 pts às 9:10-9:12), mas não paga o custo.
 - **Nem entrando às 9:30 e segurando 30 min:** tudo negativo, e nesse horário o momentum da
   abertura já não continua (ver 4.11).
+- **Nem às 10:00 segurando 30 min:** sem edge, nem antes do custo (ver 4.12).
 - Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---
@@ -338,7 +359,8 @@ ordem de grandeza dos custos, resultado por ano, walk-forward) foram feitos; ver
 - `scripts/entrada_por_horario.py` — generaliza o anterior para qualquer horário de entrada
   (padrão: 9:02, 9:05, 9:07, 9:08, 9:10, 9:12, 9:15, 9:20) e qualquer tempo em posição (`--dur=N`,
   padrão 15); `resultados/entrada_por_horario_2012-2026.txt` tem a saída padrão e
-  `resultados/entrada_0930_segurar30min_2012-2026.txt` a de 9:30 com 30 min.
+  `resultados/entrada_0930_segurar30min_2012-2026.txt` a de 9:30 com 30 min e
+  `resultados/entrada_1000_segurar30min_2012-2026.txt` a de 10:00 com 30 min.
 - `README.md` — como rodar e premissas.
 - `HANDOFF.md` — este arquivo.
 

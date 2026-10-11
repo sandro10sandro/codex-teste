@@ -74,4 +74,5 @@ O `--dur=N` muda o tempo em posição. Entrando às 9:30 e segurando 30 minutos 
 as 24 combinações da grade são negativas nas duas metades, a maioria com folga (a melhor, comprar e
 segurar, perde 2,7 pts por operação). Às 9:30 o movimento da abertura já não continua (momentum sem
 custo rende -1,7 pts), sobrando só a leve tendência de alta do índice no período, que não paga o
-custo. O rompimento da faixa de 9:00-9:29 é o pior de todos, -29 pts por operação.
+custo. O rompimento da faixa de 9:00-9:29 é o pior de todos, -29 pts por operação. Às 10:00 segurando 30
+minutos é igual: nada positivo, e nesse horário nem os sinais brutos (sem custo) sobram.
