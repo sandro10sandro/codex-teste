@@ -251,8 +251,11 @@ espera-se que meia dúzia pareça boa por acaso.
   metades). É do tamanho do custo de uma operação (10 pts no teste, 12 a 40 reais): não dá para
   operar, mas é informação de verdade sobre o mercado.
 - O rompimento da faixa de 9:00-9:01 com entrada às 9:02 deu +7,4/op (t 1,74; metades +9,1 e
-  +5,7) com 53% de acerto. É 1 em 200 combinações, não significativo, e depende de preenchimento
-  perfeito no nível rompido numa faixa de 2 candles; está sendo checado com slippage extra.
+  +5,7) com 53% de acerto, a única regra fora da grade positiva nas duas metades. Não resiste à
+  checagem: com 1 tick (5 pts) de slippage na entrada cai para +3,0/op (t 0,70); exigindo que o
+  candle feche fora da faixa em vez de só tocar, vira -4,0/op. Em 57% dos casos a faixa (mediana
+  215 pts) é rompida no próprio candle de 9:02, o mais volátil do dia, e o modelo assume execução
+  exata no nível rompido. É 1 em 200 combinações e some com execução realista.
 
 ---
 
@@ -266,8 +269,9 @@ espera-se que meia dúzia pareça boa por acaso.
 - **A janela 9:00-9:02 deixou de existir** em metade dos pregões desde o fim de 2025; qualquer
   operacional de abertura hoje tem que partir do print do leilão.
 - **Entrar às 9:15 não resolve:** com leitura de 9:00-9:14, nenhuma regra é positiva (ver 4.9).
-- **Nem outro horário entre 9:02 e 9:20:** nenhuma regra positiva nas duas metades (ver 4.10). A
-  continuação do movimento desde a abertura existe (~10 pts às 9:10-9:12), mas não paga o custo.
+- **Nem outro horário entre 9:02 e 9:20:** nenhuma regra da grade positiva nas duas metades, e o
+  único rompimento positivo (9:02) some com 1 tick de slippage (ver 4.10). A continuação do
+  movimento desde a abertura existe (~10 pts às 9:10-9:12), mas não paga o custo.
 - Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---

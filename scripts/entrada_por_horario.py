@@ -44,10 +44,6 @@ def minutos(t):
     return t // 10000 * 60 + (t // 100) % 100
 
 
-def hhmmss(m):
-    return (m // 60) * 10000 + (m % 60) * 100
-
-
 def hm(m):
     return f"{m // 60:02d}:{m % 60:02d}"
 

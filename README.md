@@ -62,7 +62,9 @@ operação sem custo, t 2,3), que não paga o custo de uma operação.
 
 Vários horários de entrada (`scripts/entrada_por_horario.py`, saída em
 `resultados/entrada_por_horario_2012-2026.txt`): 9:02, 9:05, 9:07, 9:08, 9:10, 9:12, 9:15 e 9:20, com
-leitura de 9:00 até o minuto anterior e 15 minutos em posição. Nenhum horário tem regra positiva
-nas duas metades do período. O que aparece em todos os horários é a continuação do movimento
+leitura de 9:00 até o minuto anterior e 15 minutos em posição. Nenhum horário tem regra da grade
+positiva nas duas metades do período, e o único rompimento positivo (faixa de 9:00-9:01, entrada
+às 9:02, +7,4 pts por operação) some com 1 tick de slippage ou com confirmação por fechamento do
+candle. O que aparece em todos os horários é a continuação do movimento
 desde a abertura, mais forte às 9:10-9:12 (cerca de 10 a 12 pts por operação sem custo, t de 3 a 4),
 mas isso é do tamanho do custo de uma operação e some com custo realista.
