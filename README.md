@@ -11,6 +11,7 @@ Só usam a biblioteca padrão do Python.
 python3 scripts/abertura.py     # janela 9:00-9:15, volume por horário, regras testadas, base aleatória
 python3 scripts/robustez.py     # metades do período, custo maior, sem os 5 melhores dias, tamanho do gap
 python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv   # regra congelada em dados que não foram usados na escolha
+python3 scripts/entrada_0915.py WINFUT_NA_BMF_I_v6_raw.csv      # mesma ideia com entrada às 9:15 (lê 9:00-9:14, sai até 9:30)
 ```
 
 Sem argumentos, `abertura.py` e `robustez.py` usam `WINFUT_20MB_1.csv`. Para testar outros dados,
@@ -51,3 +52,9 @@ Dois fatos práticos do mesmo arquivo: desde outubro/novembro de 2025, em cerca 
 pregões não há negociação às 9:00 e 9:01 e o primeiro candle aparece às 9:02 ou 9:03 com volume de
 leilão, então "ler 9:00-9:02 e entrar às 9:02" não é executável como descrito; e os gaps grandes,
 que em 2012 pareciam a melhor parte da regra, são o pior quartil fora da amostra.
+
+Entrada às 9:15 (`scripts/entrada_0915.py`, saída em `resultados/entrada_0915_2012-2026.txt`): lendo
+9:00-9:14 e entrando na abertura do candle de 9:15, nenhuma das 24 combinações nem o rompimento da
+faixa dos 15 primeiros minutos é positiva no período inteiro ou em qualquer das duas metades. O único
+sinal com alguma informação é a continuação do movimento dos 15 primeiros minutos (6,5 pts por
+operação sem custo, t 2,3), que não paga o custo de uma operação.

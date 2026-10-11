@@ -15,7 +15,8 @@ mini índice (WIN). Ele é autossuficiente: dá para ler só este arquivo e cont
 > de 10 pts e +3,1 sem custo (t = 0,83). Não reotimize nem procure outra regra nos mesmos dados.
 > O que ainda vale fazer está na seção 6: entender o novo regime de abertura do WIN (desde
 > out/nov de 2025 metade dos pregões não tem candle de 9:00) e, se for seguir, só com hipótese
-> nova fixada antes e dados posteriores a 2026-09.
+> nova fixada antes e dados posteriores a 2026-09. A entrada às 9:15 também já foi testada
+> (`scripts/entrada_0915.py`): tudo negativo.
 
 ---
 
@@ -202,6 +203,28 @@ de rolagem sem operação), o que valida o pipeline.
   variante adaptada (gap pelo 1º candle, entrada no seguinte) nos dias sem 9:00 desde 2025-10-07
   dá +20,9/op com t 0,53: nada, e escolhida depois de ver os dados.
 
+### 4.9 Entrada às 9:15 (`scripts/entrada_0915.py`)
+Mesma ideia deslocada: ler 9:00-9:14, entrar na abertura do candle de 9:15, sair no alvo, no stop
+ou às 9:30. Regras e grade fixadas antes de rodar (os 6 sinais de sempre, agora com momentum dos
+15 minutos, nos 4 pares de alvo/stop, mais o rompimento da faixa de 9:00-9:14 com stop no outro
+extremo, alvo de 1x a faixa e saída até 9:59). 3.494 pregões avaliáveis; o candle de 9:15 existe
+mesmo nos dias de leilão prolongado. Saída em `resultados/entrada_0915_2012-2026.txt`.
+
+| Regra (custo 10) | n | Média/op | t | 1ª metade | 2ª metade |
+|---|---|---|---|---|---|
+| Momentum 15 min 0,20/0,20 (a menos ruim) | 3471 | -3,3 | -1,30 | -7,7 | +1,2 |
+| Contra o gap 0,30/0,30 | 3366 | -13,0 | -4,53 | -12,7 | -13,2 |
+| Reversão 15 min 0,20/0,20 | 3471 | -17,0 | -6,79 | -12,4 | -21,5 |
+| Rompimento da faixa | 3040 | -11,8 | -2,58 | -14,0 | -9,6 |
+| Cara ou coroa (mediana de 1.000 sorteios) | 3494 | -9,9 | | | |
+
+- Todas as 24 combinações e o rompimento são negativos no período inteiro e em cada metade.
+- Sem custo, o único sinal com informação é a continuação dos 15 primeiros minutos: +6,5/op
+  (t 2,29; 2ª metade +10,0, t 2,00). Contra o gap sem custo: -3,0. Nada paga 10 pts de custo,
+  muito menos os 12 a 40 pts reais.
+- Amplitude mediana: 375 pts em 9:00-9:14 e 220 pts em 9:15-9:29; o alvo de 0,30% (~280 pts) é
+  maior que a amplitude típica da janela de saída, por isso 2/3 das operações saem por tempo.
+
 ---
 
 ## 5. Conclusão atual
@@ -213,6 +236,7 @@ de rolagem sem operação), o que valida o pipeline.
   menos 1 tick por ponta) fica entre 12 e 40+ pts, acima dos 10 usados no teste; só piora.
 - **A janela 9:00-9:02 deixou de existir** em metade dos pregões desde o fim de 2025; qualquer
   operacional de abertura hoje tem que partir do print do leilão.
+- **Entrar às 9:15 não resolve:** com leitura de 9:00-9:14, nenhuma regra é positiva (ver 4.9).
 - Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---
@@ -249,6 +273,9 @@ ordem de grandeza dos custos, resultado por ano, walk-forward) foram feitos; ver
   base aleatória nos mesmos dias.
 - `resultados/fora_da_amostra_2012-2026.txt` — saída completa do teste fora da amostra, com o
   sha256 do CSV usado (o CSV de 154 MB não está no repositório).
+- `scripts/entrada_0915.py` — a mesma ideia com entrada às 9:15 (leitura 9:00-9:14, saída até
+  9:30) mais o rompimento da faixa dos 15 primeiros minutos; `resultados/entrada_0915_2012-2026.txt`
+  tem a saída.
 - `README.md` — como rodar e premissas.
 - `HANDOFF.md` — este arquivo.
 
@@ -269,6 +296,9 @@ python3 scripts/robustez.py dados_2013.csv dados_2014.csv
 
 # Teste fora da amostra (série WIN$N, não ajustada; o arquivo não está no repositório):
 python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv
+
+# Entrada às 9:15 (mesmo arquivo):
+python3 scripts/entrada_0915.py WINFUT_NA_BMF_I_v6_raw.csv
 ```
 
 Arquivos fatiados são unidos automaticamente: um dia cortado entre dois arquivos é remontado,
