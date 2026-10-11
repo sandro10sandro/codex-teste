@@ -4,6 +4,46 @@
 Saíram 8 candidatos da descoberta. 7 reprovaram na validação. O único que chegou ao teste
 final (holdout) ficou no zero a zero.
 
+**Teste definitivo em 14 anos (21/09/2012 a 02/09/2026, 3.434 pregões novos):** os 8 candidatos
+e a "pista" pós-teste **reprovaram em todos os critérios**. Todos deram prejuízo depois dos custos,
+e todos foram negativos nos últimos 3 anos.
+
+## Teste de 14 anos (pré-registrado)
+
+- **Dados:** `WINFUT_NA_BMF_I_v6_raw.csv`, enviado pelo usuário, com WIN$N em candles de 1 minuto e preço real. O arquivo não está no repositório porque tem 155 MB; o sha256 está no pré-registro.
+- **Período de teste:** todos os pregões depois de 20/09/2012. Nenhum agente viu esses dados.
+- **Pré-registro:** os critérios e os hashes do código, dos candidatos e dos dados foram publicados no GitHub **antes** de rodar (`resultados/PRE_REGISTRO_14ANOS.md`, commit `e682783`). Os candidatos são os mesmos da pesquisa, com o hash inalterado.
+- **Critério para passar:** lucro com custo base e t diário ≥ 2,6, lucro com custo stress, e lucro nos últimos 3 anos.
+- **Modo principal:** alvo e stop proporcionais ao preço (500 = 0,35% da abertura do dia, a mesma proporção da descoberta).
+- **Modo descritivo:** alvo e stop em pontos reais (500 pts).
+- **Conferências do avaliador** (`lib/wf2.py`, `avaliacao/evaluate_14anos.py`):
+  - reproduz exatamente a validação antiga;
+  - o bracket proporcional bate com a versão força-bruta (0 divergências em 2.400);
+  - foi rodado uma única vez (`resultados/teste_14anos.jsonl`).
+
+| Hipótese | Ideia | Operações (500 pts reais) | R$ por 1 contrato em 14 anos (500 pts reais) | t diário, custo base | t diário, sem custo | Últimos 3 anos | Veredito |
+|---|---|---|---|---|---|---|---|
+| time_of_day_1 | contra o movimento desde a abertura, 10:05–10:29 | 4.253 | −12.054 | −1,49 | 1,69 | negativo | reprovado |
+| time_of_day_2 | idem, 1 entrada às 10:10 | 3.398 | −12.057 | −0,55 | 1,99 | negativo | reprovado |
+| breakout_vol_1 | fade do 1º rompimento da faixa de 30 min (antes das 10h) | 2.020 | −1.038 | 0,10 | 2,53 | negativo | reprovado |
+| breakout_vol_2 | idem, qualquer horário | 3.411 | −1.420 | −0,03 | 2,97 | negativo | reprovado |
+| volume_flow_1 | segue ou faz fade às 9:30 conforme o volume | 3.379 | −13.638 | −4,24 | −1,61 | negativo | reprovado |
+| levels_calendar_1 | rompimento da faixa das 9h + fechamento anterior | 4.475 | −11.082 | −5,57 | −1,69 | negativo | reprovado |
+| levels_calendar_2 | rompimento de máx./mín. "velha" + fechamento anterior | 4.454 | −7.639 | −3,53 | 0,65 | negativo | reprovado |
+| ml_walkforward_1 | regressão logística, fade da abertura | 5.735 | −17.796 | −5,47 | 0,58 | negativo | reprovado |
+| pista 10:05→10:35 | fade da abertura com saída fixa às 10:35, sem bracket | 3.000 | −4.841 | −0,79 | 1,47 | negativo | reprovado |
+
+Como ler a tabela:
+- As colunas de t diário e de últimos 3 anos são do modo principal (bracket proporcional, P&L em pontos-base). As colunas de operações e de R$ são do modo 500 pontos reais.
+- Nenhuma hipótese foi positiva depois dos custos em nenhum dos dois modos.
+
+O que sobra de verdade: **existe uma tendência minúscula de o mercado devolver o movimento da manhã.**
+Sem custo, o "fade" do primeiro rompimento da faixa de 30 min tem t ≈ 2,5–3,0 em 14 anos. Mas essa
+tendência é **menor que o custo de operar** (com custo, t ≈ 0) e é negativa nos últimos anos. Não dá
+para ganhar dinheiro com ela.
+
+## Pesquisa original (99 dias de 2012)
+
 ## Dados
 
 - `../WINFUT_20MB_1.csv`: candles de 1 minuto do WIN$D (série contínua **ajustada**), de 02/05/2012 a 20/09/2012, com 99 pregões.
@@ -125,6 +165,7 @@ quase sempre, sorte selecionada. Foi exatamente o que aconteceu aqui: os resulta
 
 - `lib/wf.py`: carregador, simulador, comparação com entradas aleatórias, teste de dados futuros.
 - `avaliacao/evaluate.py`: avaliação nos períodos trancados.
+- `lib/wf2.py` e `avaliacao/evaluate_14anos.py`: teste de 14 anos. Uso: `python3 avaliacao/evaluate_14anos.py <csv_14anos> saida.jsonl candidatos/*.py`.
 - `candidatos/`: os 8 candidatos congelados.
 - `resultados/`: pré-registro, resultados da descoberta, validação e holdout, contagem de variações.
 - `exploracao/`: scripts das linhas de busca, mantidos para auditoria. Usam caminhos absolutos da sessão original e não rodam sem ajuste.
