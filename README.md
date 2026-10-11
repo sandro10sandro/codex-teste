@@ -13,6 +13,7 @@ python3 scripts/robustez.py     # metades do período, custo maior, sem os 5 mel
 python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv   # regra congelada em dados que não foram usados na escolha
 python3 scripts/entrada_0915.py WINFUT_NA_BMF_I_v6_raw.csv      # mesma ideia com entrada às 9:15 (lê 9:00-9:14, sai até 9:30)
 python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv [09:05 09:10 ...]   # idem para vários horários de entrada
+python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv --dur=30 09:30     # entrada às 9:30 segurando 30 minutos
 ```
 
 Sem argumentos, `abertura.py` e `robustez.py` usam `WINFUT_20MB_1.csv`. Para testar outros dados,
@@ -68,3 +69,9 @@ positiva nas duas metades do período, e o único rompimento positivo (faixa de 
 candle. O que aparece em todos os horários é a continuação do movimento
 desde a abertura, mais forte às 9:10-9:12 (cerca de 10 a 12 pts por operação sem custo, t de 3 a 4),
 mas isso é do tamanho do custo de uma operação e some com custo realista.
+
+O `--dur=N` muda o tempo em posição. Entrando às 9:30 e segurando 30 minutos (saída até 9:59), todas
+as 24 combinações da grade são negativas nas duas metades, a maioria com folga (a melhor, comprar e
+segurar, perde 2,7 pts por operação). Às 9:30 o movimento da abertura já não continua (momentum sem
+custo rende -1,7 pts), sobrando só a leve tendência de alta do índice no período, que não paga o
+custo. O rompimento da faixa de 9:00-9:29 é o pior de todos, -29 pts por operação.

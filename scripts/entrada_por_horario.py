@@ -3,17 +3,19 @@ anterior à entrada, entra na abertura do candle do horário e sai no alvo, no s
 depois (fechamento do 15º candle).
 
 Uso:
-    python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv            # horários padrão
+    python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv            # horários padrão, 15 min
     python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv 09:05 09:20
+    python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv --dur=30 09:30  # segurar 30 min
 
 Para cada horário de entrada E, regras fixadas antes de rodar (as mesmas de entrada_0915.py):
   - leitura = candles de 9:00 a E-1 min; o dia só vale se o primeiro candle lido é até
     max(9:00, E-5 min) e há pelo menos 2/3 dos minutos (mín. 2);
   - sinais: momentum (fechamento de E-1 vs abertura do 1º candle lido), reversão, segue o gap,
     contra o gap, sempre comprado, sempre vendido; grade de alvo/stop de abertura.py; custo 10;
-  - entrada na abertura do candle E (exigido), saída até o fechamento de E+14 (>= 10 candles);
-  - rompimento da faixa lida: stop no outro extremo, alvo 1x a faixa, até E+44 min.
-Com E = 09:15 isto reproduz exatamente entrada_0915.py (serve de teste de regressão).
+  - entrada na abertura do candle E (exigido), saída até o fechamento de E+(DUR-1), com >= 10 candles;
+  - rompimento da faixa lida: stop no outro extremo, alvo 1x a faixa, até E+(DUR+29) min.
+DUR é o tempo em posição em minutos (--dur=N, padrão 15). Com E = 09:15 e DUR = 15 isto reproduz
+exatamente entrada_0915.py (serve de teste de regressão).
 Na série WIN$N os dias de rolagem e os dias após buraco ficam sem operação nos sinais de gap.
 São dezenas de combinações por horário: com 8 horários e 25 regras, espera-se que meia dúzia
 pareça boa por acaso. Só vale olhar o que é positivo nas duas metades, e mesmo isso é hipótese.
@@ -82,7 +84,10 @@ def excluir_gap_artificial(info, days, rol):
     return n
 
 
-def main(caminho, horarios):
+def main(caminho, horarios, dur=15):
+    global DURACAO, ROMPIMENTO_ATE
+    DURACAO = dur
+    ROMPIMENTO_ATE = dur + 30   # com dur=15 vale 45, mantendo o teste de regressão de 09:15
     days = carregar([caminho])
     rol = dias_de_rolagem(days)
     resumo_final = []
@@ -135,5 +140,15 @@ def main(caminho, horarios):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        sys.exit("Informe o CSV, ex.: python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv 09:05 09:20")
-    main(sys.argv[1], sys.argv[2:] or HORARIOS_PADRAO)
+        sys.exit("Informe o CSV, ex.: python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv --dur=30 09:30")
+    argumentos = sys.argv[1:]
+    dur = 15
+    resto = []
+    for a in argumentos:
+        if a.startswith('--dur='):
+            dur = int(a.split('=', 1)[1])
+        else:
+            resto.append(a)
+    if not resto:
+        sys.exit("Informe o CSV.")
+    main(resto[0], resto[1:] or HORARIOS_PADRAO, dur)

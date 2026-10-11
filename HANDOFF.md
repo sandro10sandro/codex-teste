@@ -17,7 +17,8 @@ mini índice (WIN). Ele é autossuficiente: dá para ler só este arquivo e cont
 > out/nov de 2025 metade dos pregões não tem candle de 9:00) e, se for seguir, só com hipótese
 > nova fixada antes e dados posteriores a 2026-09. A entrada às 9:15 também já foi testada
 > (`scripts/entrada_0915.py`): tudo negativo. E a entrada em 9:02, 9:05, 9:07, 9:08, 9:10, 9:12,
-> 9:15 e 9:20 (`scripts/entrada_por_horario.py`): nenhum horário tem regra positiva nas duas metades.
+> 9:15 e 9:20 (`scripts/entrada_por_horario.py`): nenhum horário tem regra positiva nas duas metades,
+> inclusive entrando às 9:30 e segurando 30 minutos (`--dur=30`).
 
 ---
 
@@ -257,6 +258,27 @@ espera-se que meia dúzia pareça boa por acaso.
   215 pts) é rompida no próprio candle de 9:02, o mais volátil do dia, e o modelo assume execução
   exata no nível rompido. É 1 em 200 combinações e some com execução realista.
 
+### 4.11 Entrada às 9:30, segurando 30 minutos (`entrada_por_horario.py --dur=30 09:30`)
+Leitura de 9:00 a 9:29, entrada na abertura de 9:30, saída no alvo, no stop ou no fechamento de 9:59
+(30 candles); rompimento da faixa 9:00-9:29 até 10:29. Saída em
+`resultados/entrada_0930_segurar30min_2012-2026.txt`. 3.511 pregões avaliáveis.
+
+| Regra (custo 10) | n | Média/op | t | 1ª metade | 2ª metade |
+|---|---|---|---|---|---|
+| Sempre comprado 0,15/0,30 (a menos ruim) | 3511 | -2,7 | -0,93 | +0,4 | -5,8 |
+| Momentum 0,20/0,20 | 3493 | -11,0 | -3,86 | -15,9 | -6,1 |
+| Contra o gap 0,30/0,15 | 3383 | -17,7 | -6,19 | -17,3 | -18,1 |
+| Sempre vendido 0,30/0,15 | 3511 | -19,2 | -6,74 | -20,9 | -17,4 |
+| Rompimento da faixa 9:00-9:29 | 3259 | -29,3 | -4,86 | -28,0 | -30,6 |
+
+- Todas as 24 combinações da grade são negativas nas duas metades, a maioria com folga.
+- Às 9:30 o movimento da abertura já não continua: o momentum desde 9:00 sem custo rende -1,7/op
+  (t -0,49), contra +9 a +12 às 9:10-9:12. O único sinal bruto ainda levemente positivo é "sempre
+  comprado" (+6,4/op, t 1,86), ou seja, só a tendência de alta do índice no período, concentrada na
+  1ª metade (+8,5) e fraca na 2ª (+4,2); não paga o custo.
+- O rompimento da faixa de 9:00-9:29 (faixa larga, mediana ~290 pts) é o pior de tudo, -29/op: a
+  faixa é grande demais e o preço vai e volta dentro dela.
+
 ---
 
 ## 5. Conclusão atual
@@ -272,6 +294,8 @@ espera-se que meia dúzia pareça boa por acaso.
 - **Nem outro horário entre 9:02 e 9:20:** nenhuma regra da grade positiva nas duas metades, e o
   único rompimento positivo (9:02) some com 1 tick de slippage (ver 4.10). A continuação do
   movimento desde a abertura existe (~10 pts às 9:10-9:12), mas não paga o custo.
+- **Nem entrando às 9:30 e segurando 30 min:** tudo negativo, e nesse horário o momentum da
+  abertura já não continua (ver 4.11).
 - Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---
@@ -312,8 +336,9 @@ ordem de grandeza dos custos, resultado por ano, walk-forward) foram feitos; ver
   9:30) mais o rompimento da faixa dos 15 primeiros minutos; `resultados/entrada_0915_2012-2026.txt`
   tem a saída.
 - `scripts/entrada_por_horario.py` — generaliza o anterior para qualquer horário de entrada
-  (padrão: 9:02, 9:05, 9:07, 9:08, 9:10, 9:12, 9:15, 9:20); `resultados/entrada_por_horario_2012-2026.txt`
-  tem a saída.
+  (padrão: 9:02, 9:05, 9:07, 9:08, 9:10, 9:12, 9:15, 9:20) e qualquer tempo em posição (`--dur=N`,
+  padrão 15); `resultados/entrada_por_horario_2012-2026.txt` tem a saída padrão e
+  `resultados/entrada_0930_segurar30min_2012-2026.txt` a de 9:30 com 30 min.
 - `README.md` — como rodar e premissas.
 - `HANDOFF.md` — este arquivo.
 
@@ -341,6 +366,9 @@ python3 scripts/entrada_0915.py WINFUT_NA_BMF_I_v6_raw.csv
 # Vários horários de entrada (padrão: 9:02 a 9:20; ou passe os horários):
 python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv
 python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv 09:05 09:10
+
+# Outro tempo em posição (ex. entrar 9:30 e segurar 30 min):
+python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv --dur=30 09:30
 ```
 
 Arquivos fatiados são unidos automaticamente: um dia cortado entre dois arquivos é remontado,
