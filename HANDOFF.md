@@ -16,7 +16,8 @@ mini índice (WIN). Ele é autossuficiente: dá para ler só este arquivo e cont
 > O que ainda vale fazer está na seção 6: entender o novo regime de abertura do WIN (desde
 > out/nov de 2025 metade dos pregões não tem candle de 9:00) e, se for seguir, só com hipótese
 > nova fixada antes e dados posteriores a 2026-09. A entrada às 9:15 também já foi testada
-> (`scripts/entrada_0915.py`): tudo negativo.
+> (`scripts/entrada_0915.py`): tudo negativo. E a entrada em 9:02, 9:05, 9:07, 9:08, 9:10, 9:12,
+> 9:15 e 9:20 (`scripts/entrada_por_horario.py`): nenhum horário tem regra positiva nas duas metades.
 
 ---
 
@@ -225,6 +226,34 @@ mesmo nos dias de leilão prolongado. Saída em `resultados/entrada_0915_2012-20
 - Amplitude mediana: 375 pts em 9:00-9:14 e 220 pts em 9:15-9:29; o alvo de 0,30% (~280 pts) é
   maior que a amplitude típica da janela de saída, por isso 2/3 das operações saem por tempo.
 
+### 4.10 Vários horários de entrada (`scripts/entrada_por_horario.py`)
+Leitura de 9:00 até o minuto anterior à entrada, entrada na abertura do candle do horário, saída no
+alvo, no stop ou no fechamento do 15º candle; os mesmos 6 sinais, 4 pares de alvo/stop e o
+rompimento da faixa lida (até 45 min). Com E = 9:15 reproduz exatamente o 4.9. Saída completa em
+`resultados/entrada_por_horario_2012-2026.txt`. Custo 10, 8 horários x 25 regras = 200 combinações:
+espera-se que meia dúzia pareça boa por acaso.
+
+| Entrada | Dias | Melhor regra da grade (por t) | Média/op | t | 1ª metade | 2ª metade | Momentum sem custo | Rompimento |
+|---|---|---|---|---|---|---|---|---|
+| 9:02 | 3107 | Momentum 0,30/0,30 | -2,8 | -0,76 | +4,6 | -10,3 | +7,2 (t 1,9) | +7,4 (t 1,7) |
+| 9:05 | 3126 | Contra o gap 0,30/0,30 | -4,5 | -1,35 | -2,9 | -6,2 | +4,6 (t 1,4) | +0,4 |
+| 9:07 | 3262 | Momentum 0,30/0,30 | -3,5 | -1,12 | -8,2 | +1,2 | +6,5 (t 2,1) | -5,5 |
+| 9:08 | 3455 | Momentum 0,30/0,30 | -4,4 | -1,41 | -6,6 | -2,2 | +5,6 (t 1,8) | -6,9 |
+| 9:10 | 3470 | Momentum 0,30/0,30 | -0,4 | -0,12 | -6,4 | +5,6 | +9,6 (t 3,3) | -9,1 |
+| 9:12 | 3471 | Momentum 0,30/0,30 | +2,2 | +0,76 | -3,1 | +7,4 | +12,2 (t 4,3) | -11,6 |
+| 9:15 | 3494 | Momentum 0,15/0,30 | -2,4 | -0,98 | -6,5 | +1,6 | +6,5 (t 2,3) | -11,8 |
+| 9:20 | 3507 | Momentum 0,15/0,30 | -3,8 | -1,52 | -4,3 | -3,3 | +3,4 (t 1,2) | -11,2 |
+
+- Nenhum horário tem regra da grade positiva nas duas metades. A melhor líquida (9:12, momentum
+  0,30/0,30, +2,2/op) é negativa na 1ª metade e vale t 0,76.
+- O único padrão consistente é a **continuação do movimento desde a abertura**: positivo sem custo
+  em todos os horários, mais forte às 9:10-9:12 (+9,6 e +12,2/op, t 3,3 e 4,3, positivo nas duas
+  metades). É do tamanho do custo de uma operação (10 pts no teste, 12 a 40 reais): não dá para
+  operar, mas é informação de verdade sobre o mercado.
+- O rompimento da faixa de 9:00-9:01 com entrada às 9:02 deu +7,4/op (t 1,74; metades +9,1 e
+  +5,7) com 53% de acerto. É 1 em 200 combinações, não significativo, e depende de preenchimento
+  perfeito no nível rompido numa faixa de 2 candles; está sendo checado com slippage extra.
+
 ---
 
 ## 5. Conclusão atual
@@ -237,6 +266,8 @@ mesmo nos dias de leilão prolongado. Saída em `resultados/entrada_0915_2012-20
 - **A janela 9:00-9:02 deixou de existir** em metade dos pregões desde o fim de 2025; qualquer
   operacional de abertura hoje tem que partir do print do leilão.
 - **Entrar às 9:15 não resolve:** com leitura de 9:00-9:14, nenhuma regra é positiva (ver 4.9).
+- **Nem outro horário entre 9:02 e 9:20:** nenhuma regra positiva nas duas metades (ver 4.10). A
+  continuação do movimento desde a abertura existe (~10 pts às 9:10-9:12), mas não paga o custo.
 - Liquidez não é problema (40 a 90 mil contratos por minuto às 9:05-9:14 em 2025-26).
 
 ---
@@ -276,6 +307,9 @@ ordem de grandeza dos custos, resultado por ano, walk-forward) foram feitos; ver
 - `scripts/entrada_0915.py` — a mesma ideia com entrada às 9:15 (leitura 9:00-9:14, saída até
   9:30) mais o rompimento da faixa dos 15 primeiros minutos; `resultados/entrada_0915_2012-2026.txt`
   tem a saída.
+- `scripts/entrada_por_horario.py` — generaliza o anterior para qualquer horário de entrada
+  (padrão: 9:02, 9:05, 9:07, 9:08, 9:10, 9:12, 9:15, 9:20); `resultados/entrada_por_horario_2012-2026.txt`
+  tem a saída.
 - `README.md` — como rodar e premissas.
 - `HANDOFF.md` — este arquivo.
 
@@ -299,6 +333,10 @@ python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv
 
 # Entrada às 9:15 (mesmo arquivo):
 python3 scripts/entrada_0915.py WINFUT_NA_BMF_I_v6_raw.csv
+
+# Vários horários de entrada (padrão: 9:02 a 9:20; ou passe os horários):
+python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv
+python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv 09:05 09:10
 ```
 
 Arquivos fatiados são unidos automaticamente: um dia cortado entre dois arquivos é remontado,

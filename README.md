@@ -12,6 +12,7 @@ python3 scripts/abertura.py     # janela 9:00-9:15, volume por horário, regras 
 python3 scripts/robustez.py     # metades do período, custo maior, sem os 5 melhores dias, tamanho do gap
 python3 scripts/fora_da_amostra.py WINFUT_NA_BMF_I_v6_raw.csv   # regra congelada em dados que não foram usados na escolha
 python3 scripts/entrada_0915.py WINFUT_NA_BMF_I_v6_raw.csv      # mesma ideia com entrada às 9:15 (lê 9:00-9:14, sai até 9:30)
+python3 scripts/entrada_por_horario.py WINFUT_NA_BMF_I_v6_raw.csv [09:05 09:10 ...]   # idem para vários horários de entrada
 ```
 
 Sem argumentos, `abertura.py` e `robustez.py` usam `WINFUT_20MB_1.csv`. Para testar outros dados,
@@ -58,3 +59,10 @@ Entrada às 9:15 (`scripts/entrada_0915.py`, saída em `resultados/entrada_0915_
 faixa dos 15 primeiros minutos é positiva no período inteiro ou em qualquer das duas metades. O único
 sinal com alguma informação é a continuação do movimento dos 15 primeiros minutos (6,5 pts por
 operação sem custo, t 2,3), que não paga o custo de uma operação.
+
+Vários horários de entrada (`scripts/entrada_por_horario.py`, saída em
+`resultados/entrada_por_horario_2012-2026.txt`): 9:02, 9:05, 9:07, 9:08, 9:10, 9:12, 9:15 e 9:20, com
+leitura de 9:00 até o minuto anterior e 15 minutos em posição. Nenhum horário tem regra positiva
+nas duas metades do período. O que aparece em todos os horários é a continuação do movimento
+desde a abertura, mais forte às 9:10-9:12 (cerca de 10 a 12 pts por operação sem custo, t de 3 a 4),
+mas isso é do tamanho do custo de uma operação e some com custo realista.
