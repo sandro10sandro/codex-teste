@@ -71,6 +71,37 @@ Integridade:
 - Os sinais calculados na série combinada são idênticos aos da série só de descoberta.
 - Esta pasta reproduz os resultados de forma idêntica: `python3 avaliacao/evaluate.py validation candidatos/*.py`.
 
+## Verificação adversarial independente
+
+Dois agentes tentaram derrubar a conclusão (`verificacao/`, `resultados/verificacao.json`). **Os dois concluíram que ela se sustenta.**
+
+- **Reimplementação do zero.** O agente escreveu outro carregador e outro simulador sem ver este código. Ele reproduziu até a casa decimal todos os números do `time_of_day_1` nos três períodos.
+- **Auditoria de código.** Um simulador independente bateu operação por operação com `wf.backtest`, nos 8 candidatos, nos 3 períodos e nos 3 custos. Nenhum script de exploração leu dados além da descoberta.
+
+Achados, todos sem efeito no veredito:
+
+1. **Cache do simulador.** O cache usava `id()` do DataFrame e poderia devolver resultado velho. Não afetou nenhum número, mas foi corrigido: agora a chave é o hash do conteúdo.
+2. **A comparação com entradas aleatórias é otimista.** Ela trata operações do mesmo dia como independentes. Com testes que respeitam o agrupamento por dia, o p da validação do `time_of_day_1` sobe de 0,022 para 0,03–0,12. Ou seja, ele provavelmente nem deveria ter ido ao holdout.
+3. **O custo "stress" é brando.** Ele não dobra o tick exigido além do alvo. Dobrando também isso, o holdout cai de −514 para −2.027 pts.
+4. **O último dia (20/09/2012) é parcial,** com 35 candles até 9:34. Impacto desprezível.
+
+Sensibilidade a escolhas de implementação: trocar detalhes razoáveis muda o sinal do holdout do `time_of_day_1`. Exemplos:
+- bracket calculado a partir da abertura em vez do preço executado: −570;
+- reentrada só no candle seguinte à saída: −2.007.
+
+Isso confirma que o resultado fora da amostra é basicamente ruído.
+
+**Ressalva honesta: o poder estatístico é baixo.** Mesmo que o edge da descoberta fosse real, 19–20 dias de holdout só o detectariam em ~33–55% das vezes. Por isso, a leitura correta é:
+- **um edge do tamanho que a descoberta mostrava é desfavorecido** (z = −1,26 só no holdout);
+- **um edge menor não foi demonstrado** e não dá para demonstrar com estes dados.
+
+**Pista pós-teste (não vale como evidência).** Depois de ver os dados de teste, o reimplementador testou 8 horizontes de saída fixos. Um deles foi: sinal às 10:05, entrada às 10:06, saída às 10:35, sem bracket. Ele foi positivo na validação (t 1,80) e no holdout (t 1,90). Mas:
+- o horizonte foi escolhido olhando a resposta;
+- sem os 2 melhores dias, o t cai para ~1,0–1,2;
+- a versão com bracket 500/500 perdeu nos dois períodos de teste.
+
+No máximo, é uma hipótese para um teste novo, com dados que ninguém viu e regra congelada antes.
+
 ## Por que 99 dias não provam edge
 
 Cada operação 500/500 tem desvio de ~500 pts. Para distinguir um edge real de sorte é preciso:
@@ -97,3 +128,4 @@ quase sempre, sorte selecionada. Foi exatamente o que aconteceu aqui: os resulta
 - `candidatos/`: os 8 candidatos congelados.
 - `resultados/`: pré-registro, resultados da descoberta, validação e holdout, contagem de variações.
 - `exploracao/`: scripts das linhas de busca, mantidos para auditoria. Usam caminhos absolutos da sessão original e não rodam sem ajuste.
+- `verificacao/`: scripts da auditoria e da reimplementação independente. Têm os mesmos caminhos absolutos.

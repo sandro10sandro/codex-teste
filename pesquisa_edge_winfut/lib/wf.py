@@ -19,7 +19,9 @@ Uso:
 """
 from __future__ import annotations
 
+import hashlib
 import os
+
 import numpy as np
 import pandas as pd
 
@@ -91,7 +93,8 @@ def outcomes(df: pd.DataFrame, target: float, stop: float, cost: str = "base"):
     """
     if target > 500 or stop > 500:
         raise ValueError("alvo e stop máximos são 500 pts")
-    key = (id(df), len(df), float(df["close"].iloc[0]), float(df["close"].iloc[-1]), target, stop, cost)
+    cols = df[["open", "high", "low", "close", "tick", "day"]].to_numpy(dtype=float)
+    key = (hashlib.sha1(np.ascontiguousarray(cols).tobytes()).hexdigest(), target, stop, cost)
     if key in _CACHE:
         return _CACHE[key]
     c = COSTS[cost]
